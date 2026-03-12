@@ -28,6 +28,7 @@ from textual.widgets import (
     ListItem,
     Select,
     Static,
+    TextArea,
 )
 
 # Ensure src/ is on the path so models/repository can be imported directly.
@@ -84,6 +85,10 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
     #form-container Input, #form-container Select {
         width: 100%;
     }
+    #inp-desc {
+        height: 7;
+        width: 100%;
+    }
     #form-buttons {
         margin-top: 1;
         height: 3;
@@ -117,9 +122,8 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
             )
 
             yield Label("Description")
-            yield Input(
-                value=self.item.description if self.item else "",
-                placeholder="Description (optional)",
+            yield TextArea(
+                self.item.description if self.item else "",
                 id="inp-desc",
             )
 
@@ -158,7 +162,7 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
             self.notify("Title is required", severity="error")
             return
 
-        desc = self.query_one("#inp-desc", Input).value.strip()
+        desc = self.query_one("#inp-desc", TextArea).text.strip()
         category = self.query_one("#inp-category", Input).value.strip()
         priority = Priority(self.query_one("#sel-priority", Select).value)
 
