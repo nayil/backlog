@@ -1,0 +1,121 @@
+---
+description: Defines the /git:worktree-merge command — merge a worktree branch into master with conflict guidance and optional worktree cleanup
+alwaysApply: false
+---
+
+# Command: /git:worktree-merge
+
+## 触发条件
+
+用户输入 `/git:worktree-merge` 或明确要求将 worktree 分支合并到 master 时执行本流程。
+
+## 🚨 CRITICAL RULES
+
+- 合并目标始终是 `master`（或 `main`）分支，禁止合并到其他分支
+- 合并前必须确认当前所在 master 分支，否则先切换
+- 遇到冲突时**停止自动操作**，引导用户手动解决
+- 删除 worktree 前必须获得用户明确确认（Yes/No）
+- 禁止使用 `--force` 强制覆盖
+
+---
+
+## 执行流程
+
+### Step 1：列出可用 worktree
+
+```bash
+git worktree list
+```
+
+展示所有 worktree 及其分支名。若只有一个 worktree（主目录本身），告知用户当前无可合并的 worktree 分支。
+
+**询问用户：** "请输入要合并的 worktree 分支名（如 `dev/v0.2.0`）："
+
+### Step 2：前置检查
+
+```bash
+# 确认在 master 分支
+git branch --show-current
+
+# 如果不在 master，切换
+git checkout master
+
+# 检查工作区是否干净
+git status --porcelain
+```
+
+若工作区有未提交的改动，**停止并提示**用户先提交或暂存（`git stash`）。
+
+### Step 3：执行合并
+
+```bash
+git merge <branch-name> --no-ff -m "Merge branch '<branch-name>' into master"
+```
+
+- 使用 `--no-ff` 保留合并历史
+
+### Step 4：冲突处理
+
+若合并输出包含 `CONFLICT`：
+
+1. 运行 `git status` 显示冲突文件列表
+2. 告知用户："检测到合并冲突，请按以下步骤解决："
+   ```
+   1. 打开冲突文件，手动编辑 <<<<<<< / ======= / >>>>>>> 标记
+   2. 解决后执行：git add <file>
+   3. 所有冲突解决后执行：git commit
+   4. 完成后告诉我继续后续步骤
+   ```
+3. **等待用户确认**冲突已解决，再继续 Step 5
+
+### Step 5：验证合并结果
+
+```bash
+git log --oneline -5
+git status
+```
+
+展示最新提交记录，确认合并成功。
+
+### Step 6：询问是否删除 worktree
+
+向用户询问：
+
+> 合并完成！是否删除 worktree `<path>` 及其分支 `<branch-name>`？（输入 yes 确认，其他输入跳过）
+
+**用户回答 yes 时：**
+
+```bash
+# 删除 worktree 目录
+git worktree remove <worktree-path>
+
+# 删除本地分支
+git branch -d <branch-name>
+```
+
+若分支删除失败（提示未完全合并），改用 `git branch -D <branch-name>` 并告知用户原因。
+
+**用户回答其他时：** 告知 worktree 保留，可以后手动删除：
+
+```bash
+git worktree remove <worktree-path>
+git branch -d <branch-name>
+```
+
+---
+
+## 错误处理
+
+| 情况 | 处理方式 |
+|------|---------|
+| 分支不存在 | 列出可用分支，提示重新输入 |
+| 工作区有未提交改动 | 停止，提示 `git stash` 或先提交 |
+| 合并冲突 | 停止自动操作，引导用户手动解决 |
+| worktree 目录不存在 | 跳过 worktree remove，只删除分支 |
+| 分支有未合并提交 | 询问用户是否强制删除（`-D`） |
+
+---
+
+## Worktree 路径约定
+
+本项目 worktree 存放于 `.worktrees/{ver}/`，分支命名为 `dev/{ver}`（如 `.worktrees/v0.2.0` 对应 `dev/v0.2.0`）。

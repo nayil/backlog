@@ -1,0 +1,163 @@
+---
+description: 多 Agent 协同工作流 — 9 个阶段详细执行流程（Git 初始化、worktree、各阶段循环逻辑）
+alwaysApply: true
+---
+
+# Multi-Agent 工作流：9 个阶段执行流程
+
+## 阶段 1：需求澄清
+
+Master 与用户交互，明确需求细节。需求确认前不进入后续阶段。
+
+### Git 仓库初始化（强制）
+
+```bash
+# 检查是否为 git 仓库
+git rev-parse --is-inside-work-tree
+# 如果不是：
+git init && git add -A && git commit -m "Initial commit"
+```
+
+确保当前在 `master` 或 `main` 分支。
+
+### Git Worktree 创建（强制）
+
+1. 扫描 `.cursor/agents/` 下已有版本目录（格式 `v*.*.*`），找最高版本号
+2. 确定新版本号：无目录则用 `v0.1.0`；否则递增 minor（如 `v0.1.0` → `v0.2.0`）
+3. 创建 worktree：`git worktree add .worktrees/{ver} -b dev/{ver}`
+4. 创建版本日志目录：`mkdir -p .cursor/agents/{ver}/`
+5. 将 worktree 路径和版本目录路径传递给所有后续 Agent
+6. **所有 Developer 代码改动必须在 worktree 目录中进行**
+
+> **强制验证：** 版本目录和 worktree 不存在时，禁止 dispatch 任何 subagent。
+
+---
+
+## 阶段 2：技术规划（并行）
+
+**同一条消息中**并行 dispatch 两个 subagent（两个 Task 工具调用）：
+
+- **TechLeader**：技术调研、架构设计、模块划分 → 写入 `tech-leader.log.md`
+- **ProjectManager**：制定里程碑和时间预期 → 写入 `project-manager.log.md`
+
+---
+
+## 阶段 3：计划对齐（串行循环，最多 2 轮）
+
+```
+dispatch ProjectManager
+  ↓
+PM 读取 tech-leader.log.md → 评估可行性 → 写入 project-manager.log.md
+  ↓
+Master 读取 project-manager.log.md
+  ↓
+有问题？ → dispatch TechLeader → TL 读取 project-manager.log.md → 调整 → 更新 tech-leader.log.md → 回到开头
+  ↓ 否（或已达 2 轮）
+计划确认，进入阶段 4（超过 2 轮由 Master 裁决）
+```
+
+---
+
+## 阶段 4：并行开发（按模块依赖）
+
+读取 `tech-leader.log.md` 获取模块划分：
+- **独立模块**：同一条消息中并行 dispatch 多个 Developer
+- **有依赖的模块**：串行 dispatch（先完成被依赖模块）
+- 每个 Developer 读取 `tech-leader.log.md`，将产出写入 `developer-{module}.log.md`
+- **代码改动在 `.worktrees/{ver}/` 目录中进行**
+
+---
+
+## 阶段 5：代码审查循环（串行，最多 3 轮）
+
+```
+dispatch CodeReviewer
+  ↓
+CR 读取 developer-{mod}.log.md → 审查 → 写入 code-reviewer.log.md（P0/P1/P2 分级）
+  ↓
+Master 读取 code-reviewer.log.md
+  ↓
+有 P0/P1？ → dispatch Developer → Dev 读取 code-reviewer.log.md → 修复 → 更新 developer-{mod}.log.md → 回到开头
+  ↓ 否（或已达 3 轮）
+审查通过，进入阶段 6（超过 3 轮由 Master 裁决）
+```
+
+---
+
+## 阶段 6：测试验证（串行，最多 2 轮）
+
+```
+dispatch Tester
+  ↓
+Tester 读取 developer-*.log.md → 编写测试 + 执行 → 写入 tester.log.md
+  ↓
+Master 读取 tester.log.md
+  ↓
+有失败用例？ → dispatch Developer → Dev 读取 tester.log.md → 修复 → 更新 developer-{mod}.log.md → 回到开头
+  ↓ 否（或已达 2 轮）
+测试通过，进入阶段 7（超过 2 轮由 Master 裁决）
+```
+
+---
+
+## 阶段 7：客户验收（串行）
+
+```
+dispatch ProjectManager（读取所有日志，确认完成，生成版本号 + Release Note）
+  ↓
+dispatch Customer
+  ↓
+Customer 读取 project-manager.log.md → 实际运行程序验证 → 写入 customer.log.md
+  ↓
+Master 读取 customer.log.md
+  ↓
+验收通过？ → 进入阶段 9
+  ↓ 否
+进入阶段 8（回归开发）
+```
+
+**Worktree 合并策略：** 验收通过后**不自动合并**，Master 向用户报告：
+- worktree 分支名：`dev/{ver}`
+- worktree 路径：`.worktrees/{ver}`
+- 提示用户自行决定是否执行 `git merge dev/{ver}`
+
+---
+
+## 阶段 8：回归开发（条件触发，最多 1 次）
+
+如果 Customer 验收不通过：
+
+1. 扫描已有版本目录，在最高版本号基础上递增 **patch**（如 `v0.1.0` → `v0.1.1`）
+2. 创建新版本日志目录：`mkdir -p .cursor/agents/{new_ver}/`
+3. 创建新 worktree：`git worktree add .worktrees/{new_ver} -b dev/{new_ver}`
+4. **强制验证：** 新目录和新 worktree 必须在 dispatch 任何 subagent 之前创建完成
+5. 重新执行完整流程：阶段 2 → 3 → 4 → 5 → 6 → 7
+6. 本轮 Agent 可读取上一版本的 `customer.log.md` 了解验收反馈
+
+**最大回归次数：1 次。** 第二轮仍不通过时，Master 做最终裁决，将未解决问题记录到项目报告。
+
+---
+
+## 阶段 9：项目总结
+
+dispatch **ProjectManager**：
+- 读取所有版本目录下的所有日志
+- 输出项目完成报告（里程碑、风险回顾、最终版本号、完整 Release Note）
+- 编写产品使用说明书：`./release/{产品名称}-v{版本号}-用户手册.md`
+- 将所有内容追加到 `project-manager.log.md`
+
+**TechLeader 技术总结报告（可选）：** 仅在用户明确要求时 dispatch。
+
+### Master 最终报告内容
+
+向用户呈现：
+- 需求回顾
+- 技术方案摘要
+- 代码改动总结
+- 审查结论
+- 测试结果
+- 客户验收结论
+- 项目版本号和 Release Note
+- 产品使用说明书路径（`./release/` 目录下）
+- 项目总结（里程碑、风险、后续建议）
+- worktree 分支信息和合并提示
