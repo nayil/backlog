@@ -14,7 +14,7 @@ import io_service
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.suggester import SuggestFromList
 from textual.theme import Theme
@@ -459,7 +459,7 @@ class HelpScreen(ModalScreen[None]):
     #help-container {
         width: 60;
         height: auto;
-        max-height: 85%;
+        max-height: 90%;
         border: thick $accent;
         background: $surface;
         padding: 1 2;
@@ -475,7 +475,7 @@ class HelpScreen(ModalScreen[None]):
     ]
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="help-container"):
+        with VerticalScroll(id="help-container"):
             yield Label("[bold]Backlog Manager — Keyboard Shortcuts[/bold]")
             yield Label("─" * 43)
             yield Label("[bold] Navigation[/bold]")
@@ -486,8 +486,9 @@ class HelpScreen(ModalScreen[None]):
             yield Label("[bold] Item Management[/bold]")
             yield Label("   a              Add a new item")
             yield Label("   e              Edit selected item")
+            yield Label("                  (Edit form: set any status)")
             yield Label("   d              Delete selected item (moves to Trash)")
-            yield Label("   s              Toggle status: Todo → In Progress → Done → In Progress")
+            yield Label("   s              Cycle: Todo → InProg → Done → InProg")
             yield Label("")
             yield Label("[bold] Filters[/bold]")
             yield Label("   /              Open search / filter by keyword")
@@ -498,6 +499,7 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   r (in Trash)   Restore selected item")
             yield Label("   x (in Trash)   Permanently delete selected item")
             yield Label("   / (in Trash)   Search trash items")
+            yield Label("   (Deleted items auto-expire after 180 days)")
             yield Label("")
             yield Label("[bold] Import / Export[/bold]")
             yield Label("   Ctrl+E         Export data to JSON or CSV file")
@@ -508,6 +510,25 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   Ctrl+T         Switch color theme")
             yield Label("   ?              Show this help")
             yield Label("   q              Quit")
+            yield Label("")
+            yield Label("[bold] Status Bar (bottom)[/bold]")
+            yield Label("   Shows totals by status and current page / total pages")
+            yield Label("")
+            yield Label("[bold] Main List Columns[/bold]")
+            yield Label("   ID             Unique item identifier")
+            yield Label("   Title          Item title (category:description)")
+            yield Label("   Status         Todo / In Progress / Done")
+            yield Label("   Category       Item category (from title prefix)")
+            yield Label("   Priority       High / Medium / Low")
+            yield Label("   Age            Days since creation")
+            yield Label("")
+            yield Label("[bold] Item Form Fields[/bold]")
+            yield Label("   Title          Required; format: category:description")
+            yield Label("   Description    Optional free-text notes")
+            yield Label("   Category       Optional; auto-suggests from existing")
+            yield Label("   Priority       High / Medium (default) / Low")
+            yield Label("   Status         Edit mode only; any value allowed")
+            yield Label("")
             yield Label("─" * 43)
             yield Label("Press [bold][Esc][/bold] or [bold][Q][/bold] to close")
 
