@@ -9,11 +9,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import io_service
+
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
+from textual.suggester import SuggestFromList
 from textual.widgets import (
     DataTable,
     Footer,
@@ -92,9 +95,10 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
         Binding("ctrl+s", "submit", "Save"),
     ]
 
-    def __init__(self, item: Optional[BacklogItem] = None) -> None:
+    def __init__(self, item: Optional[BacklogItem] = None, categories: list[str] | None = None) -> None:
         super().__init__()
         self.item = item
+        self._categories = categories or []
 
     def compose(self) -> ComposeResult:
         title = "Edit Item" if self.item else "New Item"
@@ -120,6 +124,7 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
                 value=self.item.category if self.item else "",
                 placeholder="Category (optional)",
                 id="inp-category",
+                suggester=SuggestFromList(self._categories, case_sensitive=False) if self._categories else None,
             )
 
             yield Label("Priority")
@@ -490,6 +495,10 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   x (in Trash)   Permanently delete selected item")
             yield Label("   / (in Trash)   Search trash items")
             yield Label("")
+            yield Label("[bold] Import / Export[/bold]")
+            yield Label("   Ctrl+E         Export data to JSON or CSV file")
+            yield Label("   Ctrl+I         Import data from JSON or CSV file")
+            yield Label("")
             yield Label("[bold] Other[/bold]")
             yield Label("   v              Show version history")
             yield Label("   ?              Show this help")
@@ -565,6 +574,209 @@ class VersionScreen(ModalScreen[None]):
         self.dismiss(None)
 
 
+# ── Export Screen ────────────────────────────────────────────────────
+
+
+class ExportScreen(ModalScreen[None]):
+    """Modal dialog for exporting backlog data to JSON or CSV."""
+
+    CSS = """
+    ExportScreen {
+        align: center middle;
+    }
+    #export-container {
+        width: 70;
+        height: auto;
+        max-height: 80%;
+        border: thick $success;
+        background: $surface;
+        padding: 1 2;
+    }
+    #export-container Label {
+        margin-top: 1;
+    }
+    #export-container Input, #export-container Select {
+        width: 100%;
+    }
+    #export-buttons {
+        margin-top: 1;
+        height: 3;
+        align: center middle;
+    }
+    #export-buttons Static {
+        margin: 0 2;
+    }
+    """
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+        Binding("ctrl+s", "submit", "Export"),
+    ]
+
+    def __init__(self, repo: BacklogRepository) -> None:
+        super().__init__()
+        self.repo = repo
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="export-container"):
+            yield Label("[bold]📤 Export Data[/bold]")
+
+            yield Label("Format")
+            yield Select(
+                [("JSON (.json)", "json"), ("CSV (.csv)", "csv")],
+                value="json",
+                id="sel-export-format",
+            )
+
+            yield Label("File Path")
+            yield Input(
+                value=str(Path.home() / "backlog-export.json"),
+                placeholder="Export file path",
+                id="inp-export-path",
+            )
+
+            with Horizontal(id="export-buttons"):
+                yield Static("[bold][Ctrl+S][/bold] Export  |  [bold][Esc][/bold] Cancel")
+
+    @on(Select.Changed, "#sel-export-format")
+    def on_format_changed(self, event: Select.Changed) -> None:
+        fmt = event.value
+        path_input = self.query_one("#inp-export-path", Input)
+        current = path_input.value
+        if fmt == "csv":
+            if current.endswith(".json"):
+                path_input.value = current[:-5] + ".csv"
+            elif not current.endswith(".csv"):
+                path_input.value = str(Path.home() / "backlog-export.csv")
+        else:
+            if current.endswith(".csv"):
+                path_input.value = current[:-4] + ".json"
+            elif not current.endswith(".json"):
+                path_input.value = str(Path.home() / "backlog-export.json")
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+    def action_submit(self) -> None:
+        fmt = self.query_one("#sel-export-format", Select).value
+        file_path = self.query_one("#inp-export-path", Input).value.strip()
+
+        if not file_path:
+            self.notify("File path is required", severity="error")
+            return
+
+        items = self.repo.list()
+        try:
+            if fmt == "csv":
+                count = io_service.export_csv(items, file_path)
+            else:
+                count = io_service.export_json(items, file_path)
+            self.notify(f"Exported {count} item(s) to {file_path}")
+            self.dismiss(None)
+        except OSError as exc:
+            self.notify(f"Export failed: {exc}", severity="error")
+        except Exception as exc:
+            self.notify(f"Unexpected error: {exc}", severity="error")
+
+
+# ── Import Screen ────────────────────────────────────────────────────
+
+
+class ImportScreen(ModalScreen[bool]):
+    """Modal dialog for importing backlog data from JSON or CSV."""
+
+    CSS = """
+    ImportScreen {
+        align: center middle;
+    }
+    #import-container {
+        width: 70;
+        height: auto;
+        max-height: 80%;
+        border: thick $warning;
+        background: $surface;
+        padding: 1 2;
+    }
+    #import-container Label {
+        margin-top: 1;
+    }
+    #import-container Input, #import-container Select {
+        width: 100%;
+    }
+    #import-buttons {
+        margin-top: 1;
+        height: 3;
+        align: center middle;
+    }
+    #import-buttons Static {
+        margin: 0 2;
+    }
+    """
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+        Binding("ctrl+s", "submit", "Import"),
+    ]
+
+    def __init__(self, repo: BacklogRepository) -> None:
+        super().__init__()
+        self.repo = repo
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="import-container"):
+            yield Label("[bold]📥 Import Data[/bold]")
+
+            yield Label("Format")
+            yield Select(
+                [("JSON (.json)", "json"), ("CSV (.csv)", "csv")],
+                value="json",
+                id="sel-import-format",
+            )
+
+            yield Label("File Path")
+            yield Input(
+                placeholder="Path to file to import",
+                id="inp-import-path",
+            )
+
+            yield Label(
+                "[dim]Note: Records with empty title or deleted records will be skipped.[/dim]"
+            )
+
+            with Horizontal(id="import-buttons"):
+                yield Static("[bold][Ctrl+S][/bold] Import  |  [bold][Esc][/bold] Cancel")
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+    def action_submit(self) -> None:
+        fmt = self.query_one("#sel-import-format", Select).value
+        file_path = self.query_one("#inp-import-path", Input).value.strip()
+
+        if not file_path:
+            self.notify("File path is required", severity="error")
+            return
+
+        if not Path(file_path).exists():
+            self.notify(f"File not found: {file_path}", severity="error")
+            return
+
+        try:
+            if fmt == "csv":
+                imported, skipped = io_service.import_csv(file_path, self.repo)
+            else:
+                imported, skipped = io_service.import_json(file_path, self.repo)
+            msg = f"Imported {imported} item(s)"
+            if skipped:
+                msg += f", skipped {skipped}"
+            self.notify(msg)
+            self.dismiss(True)
+        except (OSError, ValueError, KeyError) as exc:
+            self.notify(f"Import failed: {exc}", severity="error")
+        except Exception as exc:
+            self.notify(f"Unexpected error: {exc}", severity="error")
+
+
 # ── Main App ────────────────────────────────────────────────────────
 
 
@@ -600,6 +812,8 @@ class BacklogApp(App):
         Binding("d", "delete_item", "Delete"),
         Binding("s", "toggle_status", "Status"),
         Binding("t", "open_trash", "Trash"),
+        Binding("ctrl+e", "export_data", "Export"),
+        Binding("ctrl+i", "import_data", "Import"),
         Binding("v", "show_versions", "Versions"),
         Binding("slash", "search", "Search"),
         Binding("n", "next_page", "Next Page"),
@@ -737,7 +951,7 @@ class BacklogApp(App):
                 self._refresh_table()
                 self.notify("Item added")
 
-        self.push_screen(ItemFormScreen(), callback=on_result)
+        self.push_screen(ItemFormScreen(categories=self.repo.get_categories()), callback=on_result)
 
     def action_edit_item(self) -> None:
         item_id = self._selected_item_id()
@@ -772,7 +986,7 @@ class BacklogApp(App):
                 self._refresh_table()
                 self.notify("Item updated")
 
-        self.push_screen(ItemFormScreen(item), callback=on_result)
+        self.push_screen(ItemFormScreen(item, categories=self.repo.get_categories()), callback=on_result)
 
     def action_delete_item(self) -> None:
         item_id = self._selected_item_id()
@@ -843,6 +1057,17 @@ class BacklogApp(App):
             self._refresh_table()
         else:
             self.notify("Already on first page", severity="warning")
+
+    def action_export_data(self) -> None:
+        self.push_screen(ExportScreen(self.repo))
+
+    def action_import_data(self) -> None:
+        def on_closed(imported: bool) -> None:
+            if imported:
+                self._refresh_categories()
+                self._refresh_table()
+
+        self.push_screen(ImportScreen(self.repo), callback=on_closed)
 
     def action_show_versions(self) -> None:
         self.push_screen(VersionScreen())
