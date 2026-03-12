@@ -22,11 +22,42 @@ git worktree list
 
 ```bash
 git branch --show-current   # 确认当前分支
-git status --porcelain       # 检查工作区是否干净
+git status --porcelain       # 检查主目录工作区是否干净
 ```
 
 - 若不在 master/main，先执行 `git checkout master`
 - 若工作区有未提交改动，**停止**并提示用户先执行 `git stash` 或提交改动
+
+## Step 2.5：检查 worktree 分支未提交改动
+
+在 worktree 目录中检查是否有未提交的改动：
+
+```bash
+git -C <worktree-path> status --porcelain
+```
+
+若有未提交改动，列出文件清单并询问用户：
+
+> 检测到 worktree `<worktree-path>` 中有以下未提交改动：
+> （列出文件列表）
+>
+> 请选择操作：
+> 1. **提交这些改动**（输入提交信息后继续合并）
+> 2. **暂存改动**（git stash，合并后可恢复）
+> 3. **忽略并继续**（未提交的改动不会被合并）
+> 4. **取消**（终止流程）
+
+根据用户选择：
+
+- **选 1（提交）**：在 worktree 目录中执行提交，然后继续
+  ```bash
+  git -C <worktree-path> add -A
+  # 使用 Python 绕过 Cursor 的 --trailer 注入问题（git 2.25 不支持）：
+  python3 -c "import subprocess; r = subprocess.run(['git', '-C', '<worktree-path>', 'commit', '-m', '<用户提供的提交信息>'], capture_output=True, text=True); print(r.stdout or r.stderr)"
+  ```
+- **选 2（暂存）**：`git -C <worktree-path> stash`，然后继续
+- **选 3（忽略）**：直接继续合并流程
+- **选 4（取消）**：终止流程
 
 ## Step 3：执行合并
 
@@ -81,7 +112,8 @@ git branch -d <branch-name>
 | 情况 | 处理 |
 |------|------|
 | 分支不存在 | 重新列出可用分支，提示重新输入 |
-| 工作区有未提交改动 | 停止，提示 `git stash` 或先提交 |
+| 主目录工作区有未提交改动 | 停止，提示 `git stash` 或先提交 |
+| worktree 有未提交改动 | 询问用户：提交、暂存、忽略或取消（见 Step 2.5） |
 | 合并冲突 | 停止自动操作，引导用户手动解决 |
 | worktree 目录不存在 | 跳过 `worktree remove`，仅删除分支 |
 
