@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -489,12 +491,77 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   / (in Trash)   Search trash items")
             yield Label("")
             yield Label("[bold] Other[/bold]")
+            yield Label("   v              Show version history")
             yield Label("   ?              Show this help")
             yield Label("   q              Quit")
             yield Label("─" * 43)
             yield Label("Press [bold][Esc][/bold] or [bold][Q][/bold] to close")
 
     def action_dismiss_help(self) -> None:
+        self.dismiss(None)
+
+
+# ── Version Screen ───────────────────────────────────────────────────
+
+
+class VersionScreen(ModalScreen[None]):
+    """Modal screen displaying available historical versions from the release/ directory."""
+
+    CSS = """
+    VersionScreen {
+        align: center middle;
+    }
+    #version-container {
+        width: 60;
+        height: auto;
+        max-height: 80%;
+        border: thick $accent;
+        background: $surface;
+        padding: 1 2;
+    }
+    #version-container Label {
+        margin-bottom: 1;
+    }
+    """
+
+    BINDINGS = [Binding("escape", "dismiss_screen", "Close")]
+
+    def _get_release_dir(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "release"
+
+    def _parse_versions(self) -> list[str]:
+        release_dir = self._get_release_dir()
+        if not release_dir.exists():
+            return []
+        versions: set[str] = set()
+        for f in release_dir.iterdir():
+            match = re.search(r"v\d+\.\d+\.\d+", f.name)
+            if match:
+                versions.add(match.group(0))
+        return sorted(
+            versions,
+            key=lambda v: tuple(int(x) for x in v[1:].split(".")),
+            reverse=True,
+        )
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="version-container"):
+            yield Label("[bold]📦 Available Versions[/bold]")
+            yield DataTable(id="version-table")
+            yield Static("[bold][Esc][/bold] Close")
+
+    def on_mount(self) -> None:
+        table = self.query_one("#version-table", DataTable)
+        table.cursor_type = "row"
+        table.add_columns("#", "Version")
+        versions = self._parse_versions()
+        if versions:
+            for idx, ver in enumerate(versions, start=1):
+                table.add_row(str(idx), ver)
+        else:
+            table.add_row("-", "(no releases found)")
+
+    def action_dismiss_screen(self) -> None:
         self.dismiss(None)
 
 
@@ -533,6 +600,7 @@ class BacklogApp(App):
         Binding("d", "delete_item", "Delete"),
         Binding("s", "toggle_status", "Status"),
         Binding("t", "open_trash", "Trash"),
+        Binding("v", "show_versions", "Versions"),
         Binding("slash", "search", "Search"),
         Binding("n", "next_page", "Next Page"),
         Binding("p", "prev_page", "Prev Page"),
@@ -572,7 +640,7 @@ class BacklogApp(App):
     def on_mount(self) -> None:
         table = self.query_one("#table", DataTable)
         table.cursor_type = "row"
-        table.add_columns("ID", "Title", "Status", "Category", "Priority")
+        table.add_columns("ID", "Title", "Status", "Category", "Priority", "Age")
         self._refresh_categories()
         self._refresh_table()
 
@@ -588,13 +656,16 @@ class BacklogApp(App):
             limit=self.page_size,
             offset=self.page * self.page_size,
         )
+        now = datetime.now()
         for item in items:
+            age_str = f"{(now - item.created_at).days}d" if item.created_at else "-"
             table.add_row(
                 str(item.id),
                 item.title,
                 STATUS_DISPLAY.get(item.status, item.status.value),
                 item.category or "-",
                 PRIORITY_DISPLAY.get(item.priority, item.priority.value),
+                age_str,
                 key=str(item.id),
             )
         self._refresh_stats()
@@ -676,6 +747,7 @@ class BacklogApp(App):
         item = self.repo.get(item_id)
         if item is None:
             return
+        original_status = item.status
 
         def on_result(result: Optional[BacklogItem]) -> None:
             if result is not None:
@@ -688,7 +760,7 @@ class BacklogApp(App):
                     priority=result.priority,
                 )
                 # Use transition_status for status changes to enforce validation
-                if result.status != item.status:
+                if result.status != original_status:
                     try:
                         self.repo.transition_status(item_id, result.status)
                     except ValueError as exc:
@@ -771,6 +843,9 @@ class BacklogApp(App):
             self._refresh_table()
         else:
             self.notify("Already on first page", severity="warning")
+
+    def action_show_versions(self) -> None:
+        self.push_screen(VersionScreen())
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
