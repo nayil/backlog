@@ -17,6 +17,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.suggester import SuggestFromList
+from textual.theme import Theme
 from textual.widgets import (
     DataTable,
     Footer,
@@ -500,7 +501,7 @@ class HelpScreen(ModalScreen[None]):
             yield Label("")
             yield Label("[bold] Import / Export[/bold]")
             yield Label("   Ctrl+E         Export data to JSON or CSV file")
-            yield Label("   Ctrl+I         Import data from JSON or CSV file")
+            yield Label("   Ctrl+O         Import data from JSON or CSV file")
             yield Label("")
             yield Label("[bold] Other[/bold]")
             yield Label("   v              Show version history")
@@ -783,14 +784,149 @@ class ImportScreen(ModalScreen[bool]):
 
 # ── Theme Screen ─────────────────────────────────────────────────────
 
+_THEME_BACKLOG_LIGHT = Theme(
+    name="backlog-light",
+    primary="#0066CC",
+    secondary="#005599",
+    accent="#E05C00",
+    foreground="#1A1A2E",
+    background="#F5F5F5",
+    surface="#FFFFFF",
+    panel="#E8E8EC",
+    success="#2E8B57",
+    warning="#CC7700",
+    error="#CC2200",
+    dark=False,
+    variables={
+        "block-cursor-foreground": "#FFFFFF",
+        "block-cursor-background": "#0066CC",
+        "footer-key-foreground": "#E05C00",
+        "input-selection-background": "#0066CC 35%",
+    },
+)
+
+_THEME_BACKLOG_NORD = Theme(
+    name="backlog-nord",
+    primary="#88C0D0",
+    secondary="#81A1C1",
+    accent="#EBCB8B",
+    foreground="#ECEFF4",
+    background="#2E3440",
+    surface="#3B4252",
+    panel="#434C5E",
+    success="#A3BE8C",
+    warning="#EBCB8B",
+    error="#BF616A",
+    dark=True,
+    variables={
+        "block-cursor-foreground": "#2E3440",
+        "block-cursor-background": "#88C0D0",
+        "footer-key-foreground": "#EBCB8B",
+        "input-selection-background": "#81A1C1 40%",
+    },
+)
+
+_THEME_BACKLOG_SOLARIZED_LIGHT = Theme(
+    name="backlog-solarized-light",
+    primary="#268BD2",
+    secondary="#2AA198",
+    accent="#CB4B16",
+    foreground="#002B36",
+    background="#FDF6E3",
+    surface="#EEE8D5",
+    panel="#DDD8C5",
+    success="#2AA198",
+    warning="#B58900",
+    error="#DC322F",
+    dark=False,
+    variables={
+        "block-cursor-foreground": "#FDF6E3",
+        "block-cursor-background": "#268BD2",
+        "footer-key-foreground": "#CB4B16",
+        "input-selection-background": "#268BD2 30%",
+    },
+)
+
+_THEME_BACKLOG_SOLARIZED_DARK = Theme(
+    name="backlog-solarized-dark",
+    primary="#268BD2",
+    secondary="#2AA198",
+    accent="#CB4B16",
+    foreground="#EAE3CB",
+    background="#002B36",
+    surface="#073642",
+    panel="#0D4450",
+    success="#859900",
+    warning="#B58900",
+    error="#DC322F",
+    dark=True,
+    variables={
+        "block-cursor-foreground": "#002B36",
+        "block-cursor-background": "#268BD2",
+        "footer-key-foreground": "#CB4B16",
+        "input-selection-background": "#268BD2 35%",
+    },
+)
+
+_THEME_BACKLOG_GRUVBOX = Theme(
+    name="backlog-gruvbox",
+    primary="#B8BB26",
+    secondary="#8EC07C",
+    accent="#FABD2F",
+    foreground="#FBF1C7",
+    background="#282828",
+    surface="#3C3836",
+    panel="#504945",
+    success="#8EC07C",
+    warning="#FABD2F",
+    error="#FB4934",
+    dark=True,
+    variables={
+        "block-cursor-foreground": "#282828",
+        "block-cursor-background": "#B8BB26",
+        "footer-key-foreground": "#FABD2F",
+        "input-selection-background": "#689D6A 40%",
+    },
+)
+
+_THEME_BACKLOG_DRACULA = Theme(
+    name="backlog-dracula",
+    primary="#BD93F9",
+    secondary="#6272A4",
+    accent="#FF79C6",
+    foreground="#F8F8F2",
+    background="#282A36",
+    surface="#383A59",
+    panel="#44475A",
+    success="#50FA7B",
+    warning="#FFB86C",
+    error="#FF5555",
+    dark=True,
+    variables={
+        "block-cursor-foreground": "#282A36",
+        "block-cursor-background": "#BD93F9",
+        "footer-key-foreground": "#FF79C6",
+        "input-selection-background": "#6272A4 50%",
+    },
+)
+
+CUSTOM_THEMES = [
+    _THEME_BACKLOG_LIGHT,
+    _THEME_BACKLOG_NORD,
+    _THEME_BACKLOG_SOLARIZED_LIGHT,
+    _THEME_BACKLOG_SOLARIZED_DARK,
+    _THEME_BACKLOG_GRUVBOX,
+    _THEME_BACKLOG_DRACULA,
+]
+
 AVAILABLE_THEMES: list[tuple[str, str]] = [
     ("textual-dark", "默认暗色"),
-    ("textual-light", "默认亮色"),
-    ("nord", "北欧冷蓝"),
-    ("solarized-light", "Solarized 护眼暖白"),
-    ("solarized-dark", "Solarized 护眼暗色"),
-    ("gruvbox", "复古终端暖黄绿"),
-    ("dracula", "流行紫色暗色"),
+    ("backlog-light", "清爽亮色"),
+    ("backlog-nord", "北欧冷蓝"),
+    ("backlog-solarized-light", "Solarized 护眼暖白"),
+    ("backlog-solarized-dark", "Solarized 护眼暗色"),
+    ("backlog-gruvbox", "复古终端暖黄绿"),
+    ("backlog-dracula", "流行紫色暗色"),
 ]
 
 
@@ -907,7 +1043,7 @@ class BacklogApp(App):
         Binding("s", "toggle_status", "Status"),
         Binding("t", "open_trash", "Trash"),
         Binding("ctrl+e", "export_data", "Export"),
-        Binding("ctrl+i", "import_data", "Import"),
+        Binding("ctrl+o", "import_data", "Import"),
         Binding("v", "show_versions", "Versions"),
         Binding("slash", "search", "Search"),
         Binding("n", "next_page", "Next Page"),
@@ -948,6 +1084,8 @@ class BacklogApp(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        for theme in CUSTOM_THEMES:
+            self.register_theme(theme)
         table = self.query_one("#table", DataTable)
         table.cursor_type = "row"
         table.add_columns("ID", "Title", "Status", "Category", "Priority", "Age")
