@@ -20,6 +20,8 @@ from textual.widgets import (
     Header,
     Input,
     Label,
+    ListView,
+    ListItem,
     Select,
     Static,
 )
@@ -27,6 +29,7 @@ from textual.widgets import (
 # Ensure src/ is on the path so models/repository can be imported directly.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from config import BacklogConfig, get_theme, set_theme
 from models import BacklogItem, Priority, Status
 from repository import BacklogRepository
 
@@ -492,6 +495,7 @@ class HelpScreen(ModalScreen[None]):
             yield Label("")
             yield Label("[bold] Other[/bold]")
             yield Label("   v              Show version history")
+            yield Label("   Ctrl+T         Switch color theme")
             yield Label("   ?              Show this help")
             yield Label("   q              Quit")
             yield Label("─" * 43)
@@ -565,6 +569,96 @@ class VersionScreen(ModalScreen[None]):
         self.dismiss(None)
 
 
+# ── Theme Screen ─────────────────────────────────────────────────────
+
+AVAILABLE_THEMES: list[tuple[str, str]] = [
+    ("textual-dark", "默认暗色"),
+    ("textual-light", "默认亮色"),
+    ("nord", "北欧冷蓝"),
+    ("solarized-light", "Solarized 护眼暖白"),
+    ("solarized-dark", "Solarized 护眼暗色"),
+    ("gruvbox", "复古终端暖黄绿"),
+    ("dracula", "流行紫色暗色"),
+]
+
+
+class ThemeScreen(ModalScreen[Optional[str]]):
+    """Modal screen for theme selection with live preview."""
+
+    CSS = """
+    ThemeScreen {
+        align: center middle;
+    }
+    #theme-container {
+        width: 60;
+        height: auto;
+        max-height: 80%;
+        border: thick $accent;
+        background: $surface;
+        padding: 1 2;
+    }
+    #theme-container Label {
+        margin-bottom: 1;
+    }
+    #theme-list {
+        height: auto;
+        max-height: 20;
+        border: solid $accent;
+    }
+    #theme-hint {
+        margin-top: 1;
+        height: 1;
+    }
+    """
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel"),
+        Binding("enter", "confirm", "Apply"),
+    ]
+
+    def __init__(self, current_theme: str) -> None:
+        super().__init__()
+        self._current_theme = current_theme
+        self._original_theme = current_theme
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="theme-container"):
+            yield Label("[bold]🎨 Select Theme[/bold]")
+            items = [
+                ListItem(Label(f"  {name}  —  {desc}"), id=f"theme-{name}")
+                for name, desc in AVAILABLE_THEMES
+            ]
+            yield ListView(*items, id="theme-list")
+            yield Static(
+                "[bold][Enter][/bold] Apply  |  [bold][Esc][/bold] Cancel",
+                id="theme-hint",
+            )
+
+    def on_mount(self) -> None:
+        lv = self.query_one("#theme-list", ListView)
+        theme_names = [name for name, _ in AVAILABLE_THEMES]
+        if self._current_theme in theme_names:
+            lv.index = theme_names.index(self._current_theme)
+
+    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        if event.item is not None:
+            item_id = event.item.id or ""
+            if item_id.startswith("theme-"):
+                theme_name = item_id[len("theme-"):]
+                self.app.theme = theme_name
+                self._current_theme = theme_name
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        self.action_confirm()
+
+    def action_confirm(self) -> None:
+        self.dismiss(self._current_theme)
+
+    def action_cancel(self) -> None:
+        self.app.theme = self._original_theme
+        self.dismiss(None)
+
+
 # ── Main App ────────────────────────────────────────────────────────
 
 
@@ -605,6 +699,7 @@ class BacklogApp(App):
         Binding("n", "next_page", "Next Page"),
         Binding("p", "prev_page", "Prev Page"),
         Binding("question_mark", "help", "Help"),
+        Binding("ctrl+t", "change_theme", "Theme"),
         Binding("q", "quit", "Quit"),
     ]
 
@@ -612,6 +707,7 @@ class BacklogApp(App):
         super().__init__()
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
         self.repo = BacklogRepository(db_path)
+        self.config = BacklogConfig()
         self.filter_status: Optional[Status] = None
         self.filter_category: Optional[str] = None
         self.filter_keyword: Optional[str] = None
@@ -643,6 +739,9 @@ class BacklogApp(App):
         table.add_columns("ID", "Title", "Status", "Category", "Priority", "Age")
         self._refresh_categories()
         self._refresh_table()
+        saved_theme = self.config.get_theme()
+        if saved_theme in {name for name, _ in AVAILABLE_THEMES}:
+            self.theme = saved_theme
 
     # ── data refresh ─────────────────────────────────────────────
 
@@ -849,6 +948,15 @@ class BacklogApp(App):
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
+
+    def action_change_theme(self) -> None:
+        def on_result(chosen: Optional[str]) -> None:
+            if chosen is not None:
+                self.theme = chosen
+                self.config.set_theme(chosen)
+                self.notify(f"Theme: {chosen}")
+
+        self.push_screen(ThemeScreen(self.theme), callback=on_result)
 
 
 if __name__ == "__main__":
