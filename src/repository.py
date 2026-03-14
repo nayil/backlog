@@ -145,9 +145,25 @@ class BacklogRepository:
         keyword: Optional[str] = None,
         limit: Optional[int] = None,
         offset: int = 0,
+        sort_by: Optional[str] = None,
+        sort_asc: bool = True,
     ) -> List[BacklogItem]:
         where, params = self._build_where_clause(status, category, keyword)
-        query = f"SELECT * FROM backlog_items WHERE {where} ORDER BY id"
+
+        _VALID_SORT_BY = {"priority", "category", "status", "age"}
+        if sort_by not in _VALID_SORT_BY:
+            order_clause = "id"
+        elif sort_by == "priority":
+            order_clause = "CASE priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 WHEN 'low' THEN 2 ELSE 3 END"
+        elif sort_by == "status":
+            order_clause = "CASE status WHEN 'in_progress' THEN 0 WHEN 'todo' THEN 1 WHEN 'done' THEN 2 ELSE 3 END"
+        elif sort_by == "category":
+            order_clause = "category"
+        elif sort_by == "age":
+            order_clause = "created_at"
+
+        direction = "ASC" if sort_asc else "DESC"
+        query = f"SELECT * FROM backlog_items WHERE {where} ORDER BY {order_clause} {direction}"
 
         if limit is not None:
             query += " LIMIT ? OFFSET ?"
