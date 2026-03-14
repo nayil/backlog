@@ -53,10 +53,11 @@ if [ "${CI:-}" = "true" ] || [[ " $* " == *" --no-launcher "* ]]; then
 else
     warn "Creating launcher at $LAUNCHER ..."
     mkdir -p "$LAUNCHER_DIR"
-    cat > "$LAUNCHER" <<LAUNCHER_SCRIPT
+    PYTHON_CMD=$(basename "$PYTHON")
+    cat > "$LAUNCHER" <<LAUNCHER_EOF
 #!/usr/bin/env bash
-exec "$PYTHON" -m backlog "\$@"
-LAUNCHER_SCRIPT
+exec $PYTHON_CMD -m backlog "\$@"
+LAUNCHER_EOF
     chmod +x "$LAUNCHER"
     info "Launcher created: $LAUNCHER"
 fi
