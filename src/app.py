@@ -1192,8 +1192,8 @@ class BacklogApp(App):
                 colorize(age_str),
                 key=str(item.id),
             )
+        table.refresh()
         if not items:
-            table.refresh()
             self._clear_preview()
         self._refresh_stats()
 
