@@ -45,15 +45,15 @@ DB_PATH = os.path.join(Path.home(), ".backlog", "backlog.db")
 # ── helpers ──────────────────────────────────────────────────────────
 
 STATUS_DISPLAY = {
-    Status.TODO: "📋 Todo",
-    Status.IN_PROGRESS: "🔨 In Progress",
-    Status.DONE: "✅ Done",
+    Status.TODO: "Todo",
+    Status.IN_PROGRESS: "In Progress",
+    Status.DONE: "Done",
 }
 
 PRIORITY_DISPLAY = {
-    Priority.HIGH: "🔴 High",
-    Priority.MEDIUM: "🟡 Medium",
-    Priority.LOW: "🟢 Low",
+    Priority.HIGH: "High",
+    Priority.MEDIUM: "Medium",
+    Priority.LOW: "Low",
 }
 
 NEXT_STATUS = {
