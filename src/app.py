@@ -440,4 +440,11 @@ class BacklogApp(App):
 
 
 if __name__ == "__main__":
+    if "--version" in sys.argv:
+        try:
+            from __init__ import __version__
+        except ImportError:
+            __version__ = "1.0.0"
+        print(f"backlog {__version__}")
+        sys.exit(0)
     BacklogApp().run()
