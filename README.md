@@ -1,291 +1,150 @@
-# Backlog Manager 用户手册
+# Backlog Manager
 
-**版本：v0.9.0 | 发布日期：2026-03-14**
+> 基于终端的任务管理工具 | A terminal-based task manager built with Textual TUI
 
----
-
-## 目录
-
-1. [简介](#简介)
-2. [安装与运行](#安装与运行)
-3. [界面概览](#界面概览)
-4. [v0.9.0 新功能](#v090-新功能)
-5. [键盘快捷键](#键盘快捷键)
-6. [功能详解](#功能详解)
-7. [版本信息](#版本信息)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/badge/version-1.0.0-orange)
 
 ---
 
-## 简介
+## Features | 功能特性
 
-Backlog Manager 是一款基于终端的任务管理工具（TUI），使用 [Textual](https://textual.textualize.io/) 框架构建，支持任务的创建、编辑、分类、状态流转、搜索过滤、回收站以及数据导入导出。
+| Feature | 功能 |
+|---------|------|
+| Task CRUD with category & priority | 任务增删改查，支持分类与优先级 |
+| Status workflow: Todo → In Progress → Done | 状态流转：待办 → 进行中 → 完成 |
+| Full-text keyword search & filter | 全文关键字搜索与过滤 |
+| Trash & restore (180-day retention) | 回收站与恢复（保留 180 天） |
+| JSON / CSV import & export | JSON / CSV 导入导出 |
+| 7 color themes | 7 种颜色主题 |
+| Column sorting (Status / Category / Priority / Age) | 列排序（状态 / 分类 / 优先级 / 天龄） |
+| Priority color indicators (HIGH=red / MEDIUM=amber / LOW=green) | 优先级颜色指示（高=红 / 中=琥珀 / 低=绿） |
+| One-command install via `install.sh` | 一键安装脚本 `install.sh` |
 
 ---
 
-## 安装与运行
+## Quick Start | 快速开始
 
-### 环境要求
-
-- Python 3.9+
-- 依赖库：`textual`、`rich`
-
-### 安装依赖
+### Option 1 — One-command install | 方式一：一键安装
 
 ```bash
-pip install -r requirements.txt
-```
-
-### 启动应用
-
-```bash
-# 方式一（推荐）
+git clone <repo-url>
+cd backlog
+bash install.sh
 python -m backlog
-
-# 方式二
-python src/app.py
 ```
 
-数据库文件默认存储于 `~/.backlog/backlog.db`，首次运行会自动创建。
+### Option 2 — Manual install | 方式二：手动安装
 
----
-
-## 界面概览
-
-```
-┌─ Backlog Manager ──────────────────────────────────────────────────┐
-│ [All Status v]  [All Categories v]                  (过滤栏)       │
-├────────────────────────────────────────────────────────────────────┤
-│ ID | Title       | Status ^| Category | Priority | Age             │
-│    │             │         │          │ HIGH     │                  │
-│    │             │         │          │ MEDIUM   │                  │
-│    │  (主列表)   │         │          │ LOW      │                  │
-├────────────────────────────────────────────────────────────────────┤
-│ Total: N | Todo: N | In Progress: N | Done: N | Page 1/1  [N]ext   │
-└────────────────────────────────────────────────────────────────────┘
-[a]Add  [e]Edit  [d]Delete  [s]Status  [t]Trash  ...  [q]Quit
+```bash
+# Requirements: Python 3.9+ | 环境要求：Python 3.9+
+pip install -r requirements.txt
+python -m backlog
+# Alternative: python src/app.py
 ```
 
-- **主列表**：显示任务 ID、Title、Status、Category、Priority、Age 六列
-- **顶部过滤栏**：按 Status 和 Category 筛选；可搭配 `/` 关键字搜索
-- **底部状态栏**：汇总数量与分页信息
-- **Priority 列**：v0.9.0 起以独立颜色标识优先级（红/琥珀/绿）
-- **列标题**：v0.9.0 起可点击排序，活跃排序列显示 ↑/↓ 箭头
+### Check version | 查看版本
 
----
-
-## v0.9.0 新功能
-
-### F1：Priority 列颜色差异化显示
-
-**功能说明：** 主列表中，Priority 列根据优先级显示独立颜色，无需逐行阅读文字即可快速识别任务紧急程度。
-
-**颜色对照：**
-
-| 优先级 | 显示颜色 | 色值 |
-|--------|----------|------|
-| HIGH（高优先级） | 红色 | `#E06C75` |
-| MEDIUM（中优先级） | 琥珀色 | `#E5C07B` |
-| LOW（低优先级） | 绿色 | `#98C379` |
-
-**使用说明：**
-- 无需任何配置，颜色随 Priority 值自动显示
-- 仅 Priority 列使用上述专属颜色；其余列（ID、Title、Status、Category、Age）保持原有 Category 颜色逻辑不变
-- 在所有颜色主题下均有效
-
-**适用场景：** 在大量任务中快速扫描高优先级事项，无需逐行阅读 Priority 文字。
-
----
-
-### F2：列标题点击排序
-
-**功能说明：** 点击表格列标题，可对当前视图（含过滤条件）按该列进行排序，支持升序/降序切换；活跃排序列标题右侧显示方向箭头（↑/↓）。
-
-#### 可排序列
-
-| 列名 | 排序逻辑 | 升序（↑）含义 | 降序（↓）含义 |
-|------|----------|--------------|--------------|
-| **Status** | 语义顺序 | In Progress 在前，Todo 次之，Done 最后 | Done 在前，Todo 次之，In Progress 最后 |
-| **Category** | 字母顺序 | A → Z | Z → A |
-| **Priority** | 语义顺序 | High 在前，Medium 次之，Low 最后 | Low 在前，Medium 次之，High 最后 |
-| **Age** | 创建时间 | 最早创建的任务在前（Age 值最大） | 最近创建的任务在前（Age 值最小） |
-
-#### 不可排序列
-
-| 列名 | 说明 |
-|------|------|
-| **ID** | 点击无效，不触发排序 |
-| **Title** | 点击无效，不触发排序 |
-
-#### 交互说明
-
-| 操作 | 效果 |
-|------|------|
-| 点击一个未激活的可排序列标题 | 按该列**升序（↑）**排序，列标题显示 ↑ |
-| 再次点击同一列标题（当前为升序） | 切换为**降序（↓）**，列标题显示 ↓ |
-| 再次点击同一列标题（当前为降序） | 切换回**升序（↑）** |
-| 点击另一个可排序列标题 | 新列升序（↑）排序，旧列箭头清除 |
-| 点击 ID 或 Title 列标题 | 无响应，排序状态不变 |
-
-**分页自动重置：** 切换排序列或方向后，分页自动归位到第 1 页，确保数据显示正确，不会出现空页或数据错位。
-
-**与过滤联动：** 排序在当前过滤结果的基础上生效。例如：先按 Status 过滤出"In Progress"任务，再点击 Priority 列标题，则仅对"In Progress"任务按 Priority 排序显示。
-
----
-
-## 键盘快捷键
-
-### 主界面
-
-| 快捷键 | 功能 |
-|--------|------|
-| `↑` / `↓` | 在列表中移动光标，同时刷新右侧预览 |
-| `a` | 新增任务 |
-| `e` | 编辑选中任务 |
-| `d` | 删除选中任务（移入回收站） |
-| `s` | 循环切换状态：Todo → In Progress → Done → In Progress |
-| `t` | 打开回收站 |
-| `/` | 打开关键字搜索/过滤 |
-| `n` | 下一页 |
-| `p` | 上一页 |
-| `Ctrl+E` | 导出数据（JSON / CSV） |
-| `Ctrl+O` | 导入数据（JSON / CSV） |
-| `v` | 查看历史版本列表 |
-| `Ctrl+T` | 切换颜色主题 |
-| `?` | 显示帮助（快捷键说明） |
-| `q` | 退出应用 |
-
-### 新增/编辑对话框
-
-| 快捷键 | 功能 |
-|--------|------|
-| `Ctrl+S` | 保存 |
-| `Esc` | 取消，关闭对话框 |
-
-### 删除确认对话框
-
-| 快捷键 | 功能 |
-|--------|------|
-| `Y` 或 `Enter` | 确认删除 |
-| `N` 或 `Esc` | 取消 |
-
-### 回收站界面
-
-| 快捷键 | 功能 |
-|--------|------|
-| `r` | 恢复选中任务 |
-| `x` | 永久删除选中任务 |
-| `/` | 搜索回收站 |
-| `n` | 下一页 |
-| `p` | 上一页 |
-| `Esc` | 关闭回收站 |
-
-### 主题选择界面
-
-| 快捷键 | 功能 |
-|--------|------|
-| `↑` / `↓` | 预览主题（实时切换） |
-| `Enter` | 应用选中主题 |
-| `Esc` | 取消，还原原主题 |
-
-### 帮助/版本界面
-
-| 快捷键 | 功能 |
-|--------|------|
-| `Esc` 或 `q` | 关闭界面 |
-
----
-
-## 功能详解
-
-### 任务字段说明
-
-| 字段 | 说明 |
-|------|------|
-| **Title** | 必填；建议格式 `category:描述`，系统自动识别冒号前缀为 Category |
-| **Description** | 选填，自由文本备注；支持右侧面板快速预览 |
-| **Category** | 选填；输入时自动提示已有 Category；影响列表颜色（Category 颜色逻辑） |
-| **Priority** | High / Medium（默认）/ Low；v0.9.0 起 Priority 列以专属颜色显示 |
-| **Status** | 新建时固定为 Todo；编辑时可手动设置任意值 |
-
-### 状态流转
-
-```
-Todo  --[s]-->  In Progress  --[s]-->  Done  --[s]-->  In Progress
+```bash
+python -m backlog --version
+# backlog 1.0.0
 ```
 
-使用 `s` 键一键循环切换，或在编辑对话框中手动指定任意状态。
+---
 
-### 回收站
+## Interface Overview | 界面说明
 
-- 删除的任务进入回收站，**保留 180 天**后自动过期
-- 回收站内可搜索、恢复或永久删除
-- 永久删除需二次确认
+```
+┌─ Backlog Manager ─────────────────────────────────────────────────┐
+│ [All Status ▼]  [All Categories ▼]                  (filter bar)  │
+├───────────────────────────────────────────────────────────────────┤
+│ ID │ Title            │ Status ↑ │ Category │ Priority │ Age      │
+│  1 │ Fix login bug    │ todo     │ backend  │ HIGH     │  3d      │
+│  2 │ Write unit tests │ in_prog  │ testing  │ MEDIUM   │  1d      │
+│  3 │ Update docs      │ done     │ docs     │ LOW      │  7d      │
+├───────────────────────────────────────────────────────────────────┤
+│ Total: 5  Todo: 3  In Progress: 1  Done: 1  Page 1/1              │
+└───────────────────────────────────────────────────────────────────┘
+[a]Add [e]Edit [d]Del [s]Status [t]Trash [/]Search [q]Quit
+```
 
-### 数据导入导出
-
-- 支持 **JSON** 和 **CSV** 两种格式
-- 导出：`Ctrl+E`，选择格式和路径后保存
-- 导入：`Ctrl+O`，选择文件后导入；空标题或已删除记录自动跳过
-
-### 颜色主题
-
-按 `Ctrl+T` 打开主题选择器，支持以下 7 种主题：
-
-| 主题名称 | 描述 |
-|----------|------|
-| textual-dark | 默认暗色 |
-| backlog-light | 清爽亮色 |
-| backlog-nord | 北欧冷蓝 |
-| backlog-solarized-light | Solarized 护眼暖白 |
-| backlog-solarized-dark | Solarized 护眼暗色 |
-| backlog-gruvbox | 复古终端暖黄绿 |
-| backlog-dracula | 流行紫色暗色 |
-
-主题选择实时预览，`Enter` 确认后持久化保存。
+- **Filter bar | 过滤栏** — filter by Status and Category dropdowns | 按状态和分类筛选
+- **Main table | 主列表** — click column headers to sort (Status / Category / Priority / Age) | 点击列标题排序
+- **Status bar | 状态栏** — summary counts and pagination | 汇总数量与分页信息
+- **Priority colors | 优先级颜色** — HIGH=red `#E06C75`, MEDIUM=amber `#E5C07B`, LOW=green `#98C379`
 
 ---
 
-## 版本信息
+## Keyboard Shortcuts | 键盘快捷键
 
-| 项目 | 内容 |
-|------|------|
-| **版本号** | v0.9.0 |
-| **发布日期** | 2026-03-14 |
-| **技术框架** | Python + Textual TUI |
-| **数据存储** | SQLite（`~/.backlog/backlog.db`） |
-| **测试覆盖** | 17/17 通过（v0.9.0 新增 17 个测试） |
+### Main View | 主界面
 
-### v0.9.0 新功能汇总
+| Key | Action | 功能 |
+|-----|--------|------|
+| `↑` / `↓` | Move cursor | 移动光标 |
+| `a` | Add task | 新增任务 |
+| `e` | Edit task | 编辑选中任务 |
+| `d` | Delete (to trash) | 删除至回收站 |
+| `s` | Cycle status | 循环切换状态 |
+| `t` | Open trash | 打开回收站 |
+| `/` | Search / filter | 关键字搜索 |
+| `n` / `p` | Next / prev page | 翻页 |
+| `Ctrl+E` | Export JSON / CSV | 导出数据 |
+| `Ctrl+O` | Import JSON / CSV | 导入数据 |
+| `v` | Version history | 查看历史版本 |
+| `Ctrl+T` | Color theme | 切换颜色主题 |
+| `?` | Help | 帮助 |
+| `q` | Quit | 退出 |
 
-| 编号 | 功能 | 说明 |
-|------|------|------|
-| F1 | Priority 列颜色差异化 | HIGH=红色、MEDIUM=琥珀色、LOW=绿色，视觉快速识别 |
-| F2 | 列标题点击排序 | 点击 Status/Category/Priority/Age 列头排序，↑/↓ 指示方向 |
+### Add / Edit Dialog | 新增/编辑对话框
 
-### v0.9.0 变更文件
+| Key | Action | 功能 |
+|-----|--------|------|
+| `Ctrl+S` | Save | 保存 |
+| `Esc` | Cancel / Close | 取消/关闭 |
 
-| 文件 | 改动类型 | 说明 |
-|------|----------|------|
-| `src/repository.py` | 功能扩展 | `list()` 新增 `sort_by`、`sort_asc` 参数，支持 CASE WHEN 语义排序 |
-| `src/app.py` | 功能扩展 | 新增 `PRIORITY_COLORS` 常量、排序状态管理、列头动态更新、点击事件处理 |
-| `tests/test_v090.py` | 新增 | 17 个测试用例，覆盖排序、颜色、filter+sort 联动 |
+### Delete Confirmation | 删除确认
 
-### 与 v0.8.0 的差异
+| Key | Action | 功能 |
+|-----|--------|------|
+| `Y` / `Enter` | Confirm delete | 确认删除 |
+| `N` / `Esc` | Cancel | 取消 |
 
-| 对比维度 | v0.8.0 | v0.9.0 |
-|----------|--------|--------|
-| Priority 列颜色 | 跟随 Category 颜色 | 独立颜色：HIGH=红、MEDIUM=琥珀、LOW=绿 |
-| 列排序 | 固定按 ID 升序，不可更改 | 点击 Status/Category/Priority/Age 列头可切换升降序 |
-| 列头指示 | 无排序指示 | 活跃排序列显示 ↑（升序）或 ↓（降序） |
-| 分页与排序联动 | 不适用 | 切换排序后自动重置到第 1 页，避免数据错位 |
-| Category 颜色逻辑 | 全部列跟随 Category 颜色 | ID/Title/Status/Category/Age 列跟随 Category 颜色；Priority 列独立 |
-| 数据层接口 | `list()` 不支持排序参数 | `list()` 新增 `sort_by`、`sort_asc` 可选参数，默认值保持向下兼容 |
+### Trash View | 回收站界面
 
-**向下兼容说明：**
-- 未使用排序功能时，界面显示逻辑与 v0.8.0 完全一致（分页、过滤、快捷键均无变化）
-- 数据库结构无变化，v0.8.0 数据库可直接被 v0.9.0 使用，无需迁移
-- `repository.py list()` 新增参数均有默认值（`sort_by=None`），现有调用方无需修改
+| Key | Action | 功能 |
+|-----|--------|------|
+| `r` | Restore task | 恢复任务 |
+| `x` | Permanently delete | 永久删除 |
+| `/` | Search trash | 搜索回收站 |
+| `n` / `p` | Next / prev page | 翻页 |
+| `Esc` | Close trash | 关闭回收站 |
+
+### Theme Picker | 主题选择
+
+| Key | Action | 功能 |
+|-----|--------|------|
+| `↑` / `↓` | Preview theme | 预览主题（实时切换） |
+| `Enter` | Apply theme | 应用选中主题 |
+| `Esc` | Cancel | 取消，还原原主题 |
 
 ---
 
-*本用户手册由 ProjectManager Agent 生成，适用于 Backlog Manager v0.9.0。*
+## Data Storage | 数据存储
+
+Data is stored in `~/.backlog/backlog.db` (SQLite). Created automatically on first run.
+
+数据存储于 `~/.backlog/backlog.db`（SQLite），首次运行自动创建，无需手动配置。
+
+---
+
+## Version | 版本信息
+
+**v1.0.0** — 2026-03-14
+
+New in v1.0.0: `requirements.txt`, `python -m backlog` entry point, `--version` CLI flag, `install.sh` one-command installer.
+
+v1.0.0 新增：依赖清单 `requirements.txt`、`python -m backlog` 入口、`--version` 标志、`install.sh` 一键安装脚本。
+
+See [full user manual / 完整用户手册](.release/backlog-v1.0.0-用户手册.md) for details.
