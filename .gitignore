@@ -5,4 +5,6 @@ src/__pycache__/
 tests/__pycache__/
 .cursor/
 .release/
-.claude
+.claude/
+CLAUDE.md
+docs/
