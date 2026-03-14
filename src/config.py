@@ -7,7 +7,6 @@ from pathlib import Path
 
 CONFIG_DIR: Path = Path.home() / ".backlog"
 CONFIG_FILE: Path = CONFIG_DIR / "config.json"
-DEFAULT_THEME: str = "textual-dark"
 
 
 class BacklogConfig:
@@ -36,17 +35,6 @@ class BacklogConfig:
             import sys
             print(f"[backlog] warning: failed to save config: {exc}", file=sys.stderr)
 
-    def get_theme(self) -> str:
-        """Return saved theme name, falling back to DEFAULT_THEME."""
-        data = self._load()
-        return data.get("theme", DEFAULT_THEME)
-
-    def set_theme(self, name: str) -> None:
-        """Persist theme name to config.json."""
-        data = self._load()
-        data["theme"] = name
-        self._save(data)
-
 
 def load_config() -> dict:
     return BacklogConfig()._load()
@@ -54,11 +42,3 @@ def load_config() -> dict:
 
 def save_config(config: dict) -> None:
     BacklogConfig()._save(config)
-
-
-def get_theme() -> str:
-    return BacklogConfig().get_theme()
-
-
-def set_theme(name: str) -> None:
-    BacklogConfig().set_theme(name)
