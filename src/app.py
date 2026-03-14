@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import sys
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 import io_service
+from rich.text import Text
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -60,6 +62,24 @@ NEXT_STATUS = {
     Status.DONE: Status.IN_PROGRESS,
 }
 
+CATEGORY_COLORS: list[str] = [
+    "#E06C75",
+    "#98C379",
+    "#E5C07B",
+    "#61AFEF",
+    "#C678DD",
+    "#56B6C2",
+    "#D19A66",
+    "#ABB2BF",
+]
+
+
+def _category_color(category: str) -> str:
+    if not category or category == "-":
+        return ""
+    digest = hashlib.md5(category.encode()).hexdigest()
+    return CATEGORY_COLORS[int(digest, 16) % len(CATEGORY_COLORS)]
+
 
 # ── Item Form Screen ────────────────────────────────────────────────
 
@@ -72,7 +92,7 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
         align: center middle;
     }
     #form-container {
-        width: 70;
+        width: 84;
         height: auto;
         max-height: 80%;
         border: thick $accent;
@@ -86,7 +106,7 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
         width: 100%;
     }
     #inp-desc {
-        height: 7;
+        height: 9;
         width: 100%;
     }
     #form-buttons {
@@ -343,6 +363,7 @@ class TrashScreen(ModalScreen[None]):
         keyword = self.search_keyword
         table = self.query_one("#trash-table", DataTable)
         table.clear()
+        table.move_cursor(row=0, animate=False)
         items = self.repo.list_trash(
             keyword=keyword,
             limit=self.page_size,
@@ -1056,8 +1077,25 @@ class BacklogApp(App):
         background: $accent;
         color: $text;
     }
-    DataTable {
+    #main-content {
         height: 1fr;
+    }
+    #table {
+        width: 65%;
+        height: 100%;
+    }
+    #preview-panel {
+        width: 35%;
+        border-left: solid $primary;
+        padding: 0 1;
+    }
+    #preview-title {
+        text-style: bold;
+        color: $text;
+        margin-bottom: 1;
+    }
+    #preview-desc {
+        color: $text-muted;
     }
     """
 
@@ -1104,7 +1142,11 @@ class BacklogApp(App):
                 value="all",
                 id="sel-filter-category",
             )
-        yield DataTable(id="table")
+        with Horizontal(id="main-content"):
+            yield DataTable(id="table")
+            with VerticalScroll(id="preview-panel"):
+                yield Static("", id="preview-title")
+                yield Static("", id="preview-desc")
         yield Static("", id="stats-bar")
         yield Footer()
 
@@ -1125,6 +1167,7 @@ class BacklogApp(App):
     def _refresh_table(self) -> None:
         table = self.query_one("#table", DataTable)
         table.clear()
+        table.move_cursor(row=0, animate=False)
         items = self.repo.list(
             status=self.filter_status,
             category=self.filter_category,
@@ -1135,15 +1178,23 @@ class BacklogApp(App):
         now = datetime.now()
         for item in items:
             age_str = f"{(now - item.created_at).days}d" if item.created_at else "-"
+            color = _category_color(item.category or "")
+
+            def colorize(val: str, c: str = color) -> "Text | str":
+                return Text(str(val), style=c) if c else str(val)
+
             table.add_row(
-                str(item.id),
-                item.title,
-                STATUS_DISPLAY.get(item.status, item.status.value),
-                item.category or "-",
-                PRIORITY_DISPLAY.get(item.priority, item.priority.value),
-                age_str,
+                colorize(str(item.id)),
+                colorize(item.title),
+                colorize(STATUS_DISPLAY.get(item.status, item.status.value)),
+                colorize(item.category or "-"),
+                colorize(PRIORITY_DISPLAY.get(item.priority, item.priority.value)),
+                colorize(age_str),
                 key=str(item.id),
             )
+        table.refresh()
+        if not items:
+            self._clear_preview()
         self._refresh_stats()
 
     def _refresh_stats(self) -> None:
@@ -1180,6 +1231,24 @@ class BacklogApp(App):
             return int(row_key.value)
         except Exception:
             return None
+
+    def _clear_preview(self) -> None:
+        self.query_one("#preview-title", Static).update("")
+        self.query_one("#preview-desc", Static).update("")
+
+    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
+        if event.row_key is None:
+            return
+        try:
+            item_id = int(str(event.row_key.value))
+        except (ValueError, TypeError):
+            return
+        item = self.repo.get(item_id)
+        if item:
+            self.query_one("#preview-title", Static).update(item.title or "")
+            self.query_one("#preview-desc", Static).update(item.description or "(No description)")
+        else:
+            self._clear_preview()
 
     # ── filter events ────────────────────────────────────────────
 
