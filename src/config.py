@@ -13,19 +13,24 @@ DEFAULT_THEME: str = "textual-dark"
 class BacklogConfig:
     """Manages persistent configuration stored in ~/.backlog/config.json."""
 
-    def __init__(self) -> None:
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    def __init__(self, config_path: str | None = None) -> None:
+        if config_path:
+            self._config_file = Path(config_path)
+            self._config_file.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+            self._config_file = CONFIG_FILE
 
     def _load(self) -> dict:
         try:
-            with CONFIG_FILE.open("r", encoding="utf-8") as f:
+            with self._config_file.open("r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
 
     def _save(self, data: dict) -> None:
         try:
-            with CONFIG_FILE.open("w", encoding="utf-8") as f:
+            with self._config_file.open("w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         except Exception as exc:
             import sys
