@@ -1,92 +1,291 @@
-# backlog
+# Backlog Manager 用户手册
 
+**版本：v0.9.0 | 发布日期：2026-03-14**
 
+---
 
-## Getting started
+## 目录
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+1. [简介](#简介)
+2. [安装与运行](#安装与运行)
+3. [界面概览](#界面概览)
+4. [v0.9.0 新功能](#v090-新功能)
+5. [键盘快捷键](#键盘快捷键)
+6. [功能详解](#功能详解)
+7. [版本信息](#版本信息)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+---
 
-## Add your files
+## 简介
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Backlog Manager 是一款基于终端的任务管理工具（TUI），使用 [Textual](https://textual.textualize.io/) 框架构建，支持任务的创建、编辑、分类、状态流转、搜索过滤、回收站以及数据导入导出。
+
+---
+
+## 安装与运行
+
+### 环境要求
+
+- Python 3.9+
+- 依赖库：`textual`、`rich`
+
+### 安装依赖
+
+```bash
+pip install -r requirements.txt
+```
+
+### 启动应用
+
+```bash
+# 方式一（推荐）
+python -m backlog
+
+# 方式二
+python src/app.py
+```
+
+数据库文件默认存储于 `~/.backlog/backlog.db`，首次运行会自动创建。
+
+---
+
+## 界面概览
 
 ```
-cd existing_repo
-git remote add origin https://git.garena.com/yanay.li/backlog.git
-git branch -M main
-git push -uf origin main
+┌─ Backlog Manager ──────────────────────────────────────────────────┐
+│ [All Status v]  [All Categories v]                  (过滤栏)       │
+├────────────────────────────────────────────────────────────────────┤
+│ ID | Title       | Status ^| Category | Priority | Age             │
+│    │             │         │          │ HIGH     │                  │
+│    │             │         │          │ MEDIUM   │                  │
+│    │  (主列表)   │         │          │ LOW      │                  │
+├────────────────────────────────────────────────────────────────────┤
+│ Total: N | Todo: N | In Progress: N | Done: N | Page 1/1  [N]ext   │
+└────────────────────────────────────────────────────────────────────┘
+[a]Add  [e]Edit  [d]Delete  [s]Status  [t]Trash  ...  [q]Quit
 ```
 
-## Integrate with your tools
+- **主列表**：显示任务 ID、Title、Status、Category、Priority、Age 六列
+- **顶部过滤栏**：按 Status 和 Category 筛选；可搭配 `/` 关键字搜索
+- **底部状态栏**：汇总数量与分页信息
+- **Priority 列**：v0.9.0 起以独立颜色标识优先级（红/琥珀/绿）
+- **列标题**：v0.9.0 起可点击排序，活跃排序列显示 ↑/↓ 箭头
 
-- [ ] [Set up project integrations](https://git.garena.com/yanay.li/backlog/-/settings/integrations)
+---
 
-## Collaborate with your team
+## v0.9.0 新功能
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### F1：Priority 列颜色差异化显示
 
-## Test and Deploy
+**功能说明：** 主列表中，Priority 列根据优先级显示独立颜色，无需逐行阅读文字即可快速识别任务紧急程度。
 
-Use the built-in continuous integration in GitLab.
+**颜色对照：**
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+| 优先级 | 显示颜色 | 色值 |
+|--------|----------|------|
+| HIGH（高优先级） | 红色 | `#E06C75` |
+| MEDIUM（中优先级） | 琥珀色 | `#E5C07B` |
+| LOW（低优先级） | 绿色 | `#98C379` |
 
-***
+**使用说明：**
+- 无需任何配置，颜色随 Priority 值自动显示
+- 仅 Priority 列使用上述专属颜色；其余列（ID、Title、Status、Category、Age）保持原有 Category 颜色逻辑不变
+- 在所有颜色主题下均有效
 
-# Editing this README
+**适用场景：** 在大量任务中快速扫描高优先级事项，无需逐行阅读 Priority 文字。
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+---
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### F2：列标题点击排序
 
-## Name
-Choose a self-explaining name for your project.
+**功能说明：** 点击表格列标题，可对当前视图（含过滤条件）按该列进行排序，支持升序/降序切换；活跃排序列标题右侧显示方向箭头（↑/↓）。
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+#### 可排序列
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+| 列名 | 排序逻辑 | 升序（↑）含义 | 降序（↓）含义 |
+|------|----------|--------------|--------------|
+| **Status** | 语义顺序 | In Progress 在前，Todo 次之，Done 最后 | Done 在前，Todo 次之，In Progress 最后 |
+| **Category** | 字母顺序 | A → Z | Z → A |
+| **Priority** | 语义顺序 | High 在前，Medium 次之，Low 最后 | Low 在前，Medium 次之，High 最后 |
+| **Age** | 创建时间 | 最早创建的任务在前（Age 值最大） | 最近创建的任务在前（Age 值最小） |
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+#### 不可排序列
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+| 列名 | 说明 |
+|------|------|
+| **ID** | 点击无效，不触发排序 |
+| **Title** | 点击无效，不触发排序 |
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+#### 交互说明
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+| 操作 | 效果 |
+|------|------|
+| 点击一个未激活的可排序列标题 | 按该列**升序（↑）**排序，列标题显示 ↑ |
+| 再次点击同一列标题（当前为升序） | 切换为**降序（↓）**，列标题显示 ↓ |
+| 再次点击同一列标题（当前为降序） | 切换回**升序（↑）** |
+| 点击另一个可排序列标题 | 新列升序（↑）排序，旧列箭头清除 |
+| 点击 ID 或 Title 列标题 | 无响应，排序状态不变 |
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+**分页自动重置：** 切换排序列或方向后，分页自动归位到第 1 页，确保数据显示正确，不会出现空页或数据错位。
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+**与过滤联动：** 排序在当前过滤结果的基础上生效。例如：先按 Status 过滤出"In Progress"任务，再点击 Priority 列标题，则仅对"In Progress"任务按 Priority 排序显示。
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+---
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 键盘快捷键
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### 主界面
 
-## License
-For open source projects, say how it is licensed.
+| 快捷键 | 功能 |
+|--------|------|
+| `↑` / `↓` | 在列表中移动光标，同时刷新右侧预览 |
+| `a` | 新增任务 |
+| `e` | 编辑选中任务 |
+| `d` | 删除选中任务（移入回收站） |
+| `s` | 循环切换状态：Todo → In Progress → Done → In Progress |
+| `t` | 打开回收站 |
+| `/` | 打开关键字搜索/过滤 |
+| `n` | 下一页 |
+| `p` | 上一页 |
+| `Ctrl+E` | 导出数据（JSON / CSV） |
+| `Ctrl+O` | 导入数据（JSON / CSV） |
+| `v` | 查看历史版本列表 |
+| `Ctrl+T` | 切换颜色主题 |
+| `?` | 显示帮助（快捷键说明） |
+| `q` | 退出应用 |
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+### 新增/编辑对话框
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Ctrl+S` | 保存 |
+| `Esc` | 取消，关闭对话框 |
+
+### 删除确认对话框
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Y` 或 `Enter` | 确认删除 |
+| `N` 或 `Esc` | 取消 |
+
+### 回收站界面
+
+| 快捷键 | 功能 |
+|--------|------|
+| `r` | 恢复选中任务 |
+| `x` | 永久删除选中任务 |
+| `/` | 搜索回收站 |
+| `n` | 下一页 |
+| `p` | 上一页 |
+| `Esc` | 关闭回收站 |
+
+### 主题选择界面
+
+| 快捷键 | 功能 |
+|--------|------|
+| `↑` / `↓` | 预览主题（实时切换） |
+| `Enter` | 应用选中主题 |
+| `Esc` | 取消，还原原主题 |
+
+### 帮助/版本界面
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Esc` 或 `q` | 关闭界面 |
+
+---
+
+## 功能详解
+
+### 任务字段说明
+
+| 字段 | 说明 |
+|------|------|
+| **Title** | 必填；建议格式 `category:描述`，系统自动识别冒号前缀为 Category |
+| **Description** | 选填，自由文本备注；支持右侧面板快速预览 |
+| **Category** | 选填；输入时自动提示已有 Category；影响列表颜色（Category 颜色逻辑） |
+| **Priority** | High / Medium（默认）/ Low；v0.9.0 起 Priority 列以专属颜色显示 |
+| **Status** | 新建时固定为 Todo；编辑时可手动设置任意值 |
+
+### 状态流转
+
+```
+Todo  --[s]-->  In Progress  --[s]-->  Done  --[s]-->  In Progress
+```
+
+使用 `s` 键一键循环切换，或在编辑对话框中手动指定任意状态。
+
+### 回收站
+
+- 删除的任务进入回收站，**保留 180 天**后自动过期
+- 回收站内可搜索、恢复或永久删除
+- 永久删除需二次确认
+
+### 数据导入导出
+
+- 支持 **JSON** 和 **CSV** 两种格式
+- 导出：`Ctrl+E`，选择格式和路径后保存
+- 导入：`Ctrl+O`，选择文件后导入；空标题或已删除记录自动跳过
+
+### 颜色主题
+
+按 `Ctrl+T` 打开主题选择器，支持以下 7 种主题：
+
+| 主题名称 | 描述 |
+|----------|------|
+| textual-dark | 默认暗色 |
+| backlog-light | 清爽亮色 |
+| backlog-nord | 北欧冷蓝 |
+| backlog-solarized-light | Solarized 护眼暖白 |
+| backlog-solarized-dark | Solarized 护眼暗色 |
+| backlog-gruvbox | 复古终端暖黄绿 |
+| backlog-dracula | 流行紫色暗色 |
+
+主题选择实时预览，`Enter` 确认后持久化保存。
+
+---
+
+## 版本信息
+
+| 项目 | 内容 |
+|------|------|
+| **版本号** | v0.9.0 |
+| **发布日期** | 2026-03-14 |
+| **技术框架** | Python + Textual TUI |
+| **数据存储** | SQLite（`~/.backlog/backlog.db`） |
+| **测试覆盖** | 17/17 通过（v0.9.0 新增 17 个测试） |
+
+### v0.9.0 新功能汇总
+
+| 编号 | 功能 | 说明 |
+|------|------|------|
+| F1 | Priority 列颜色差异化 | HIGH=红色、MEDIUM=琥珀色、LOW=绿色，视觉快速识别 |
+| F2 | 列标题点击排序 | 点击 Status/Category/Priority/Age 列头排序，↑/↓ 指示方向 |
+
+### v0.9.0 变更文件
+
+| 文件 | 改动类型 | 说明 |
+|------|----------|------|
+| `src/repository.py` | 功能扩展 | `list()` 新增 `sort_by`、`sort_asc` 参数，支持 CASE WHEN 语义排序 |
+| `src/app.py` | 功能扩展 | 新增 `PRIORITY_COLORS` 常量、排序状态管理、列头动态更新、点击事件处理 |
+| `tests/test_v090.py` | 新增 | 17 个测试用例，覆盖排序、颜色、filter+sort 联动 |
+
+### 与 v0.8.0 的差异
+
+| 对比维度 | v0.8.0 | v0.9.0 |
+|----------|--------|--------|
+| Priority 列颜色 | 跟随 Category 颜色 | 独立颜色：HIGH=红、MEDIUM=琥珀、LOW=绿 |
+| 列排序 | 固定按 ID 升序，不可更改 | 点击 Status/Category/Priority/Age 列头可切换升降序 |
+| 列头指示 | 无排序指示 | 活跃排序列显示 ↑（升序）或 ↓（降序） |
+| 分页与排序联动 | 不适用 | 切换排序后自动重置到第 1 页，避免数据错位 |
+| Category 颜色逻辑 | 全部列跟随 Category 颜色 | ID/Title/Status/Category/Age 列跟随 Category 颜色；Priority 列独立 |
+| 数据层接口 | `list()` 不支持排序参数 | `list()` 新增 `sort_by`、`sort_asc` 可选参数，默认值保持向下兼容 |
+
+**向下兼容说明：**
+- 未使用排序功能时，界面显示逻辑与 v0.8.0 完全一致（分页、过滤、快捷键均无变化）
+- 数据库结构无变化，v0.8.0 数据库可直接被 v0.9.0 使用，无需迁移
+- `repository.py list()` 新增参数均有默认值（`sort_by=None`），现有调用方无需修改
+
+---
+
+*本用户手册由 ProjectManager Agent 生成，适用于 Backlog Manager v0.9.0。*
