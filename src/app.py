@@ -43,6 +43,7 @@ from screens import (
     ImportScreen,
 )
 from config import BacklogConfig
+from display import truncate_title
 from models import BacklogItem, Priority, Status
 from repository import BacklogRepository
 
@@ -192,7 +193,7 @@ class BacklogApp(App):
             age_str = f"{(now - item.created_at).days}d" if item.created_at else "-"
             table.add_row(
                 str(item.id),
-                item.title,
+                truncate_title(item.title, self.config.get_title_truncate_length()),
                 colorize_status(item.status, self.color_config),
                 item.category or "-",
                 colorize_priority(item.priority, self.color_config),
