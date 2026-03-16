@@ -10,6 +10,8 @@ from textual.screen import ModalScreen
 from textual.widgets import DataTable, Label, Static
 from textual.app import ComposeResult
 
+from config import BacklogConfig
+from display import truncate_title
 from repository import BacklogRepository
 from screens.confirm_delete import ConfirmDeleteScreen
 from screens.search import SearchScreen
@@ -80,12 +82,13 @@ class TrashScreen(ModalScreen[None]):
             limit=self.page_size,
             offset=self.page * self.page_size,
         )
+        max_len = BacklogConfig().get_title_truncate_length()
         for item in items:
             deleted_str = item.deleted_at.strftime("%Y-%m-%d %H:%M:%S") if item.deleted_at else "-"
             expires_str = item.expires_at.strftime("%Y-%m-%d") if item.expires_at else "-"
             table.add_row(
                 str(item.id),
-                item.title,
+                truncate_title(item.title, max_len),
                 item.category or "-",
                 deleted_str,
                 expires_str,
