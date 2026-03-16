@@ -154,14 +154,15 @@ Data is stored in `~/.backlog/backlog.db` (SQLite). Created automatically on fir
 
 ## Configuration | 配置
 
-Backlog Manager stores its configuration in `~/.backlog/config.json`. You can customize the display colors for Status and Priority columns.
+Backlog Manager stores its configuration in `~/.backlog/config.json`. You can customize the Title column truncation length and the display colors for Status and Priority columns.
 
-配置文件位于 `~/.backlog/config.json`，可自定义 Status 和 Priority 列的显示颜色。
+配置文件位于 `~/.backlog/config.json`，可自定义 Title 列截断长度、Status 和 Priority 列的显示颜色。
 
 ### Example `config.json` | 示例配置
 
 ```json
 {
+  "title_truncate_length": 35,
   "status_colors": {
     "todo": "#61AFEF",
     "in_progress": "#E5C07B",
@@ -177,6 +178,7 @@ Backlog Manager stores its configuration in `~/.backlog/config.json`. You can cu
 
 | Key | Field | Default | Description |
 |-----|-------|---------|-------------|
+| `title_truncate_length` | — | `35` | Max chars for Title column in main list and Trash; overflow shown as `…`. Non-positive or invalid → fallback 35. |
 | `status_colors` | `todo` | `#61AFEF` | Todo status color |
 | | `in_progress` | `#E5C07B` | In Progress status color |
 | | `done` | `#98C379` | Done status color |
@@ -184,9 +186,8 @@ Backlog Manager stores its configuration in `~/.backlog/config.json`. You can cu
 | | `medium` | `#E5C07B` | Medium priority color |
 | | `low` | `#98C379` | Low priority color |
 
-All color values must be valid 6-digit hex (`#RRGGBB`). Invalid or unknown keys are silently ignored, falling back to defaults.
-
-所有颜色值须为合法的 6 位 hex（`#RRGGBB`），不合法或未知 key 将静默忽略并使用默认值。
+- **title_truncate_length**：主列表和回收站中 Title 列的最大显示字符数，超出以 `…` 结尾；非正整数或非法值回退为 35；仅影响列表显示，Preview 和表单仍显示完整内容。
+- **Colors**：颜色值须为合法 6 位 hex（`#RRGGBB`），不合法或未知 key 将静默忽略并使用默认值。
 
 ---
 
