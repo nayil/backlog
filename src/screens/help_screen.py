@@ -8,6 +8,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Label
 from textual.app import ComposeResult
 
+from color_config import ColorConfig
+
 
 class HelpScreen(ModalScreen[None]):
     """Modal screen displaying keyboard shortcuts and feature descriptions."""
@@ -87,6 +89,17 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   Category       Optional; auto-suggests from existing")
             yield Label("   Priority       High / Medium (default) / Low")
             yield Label("   Status         Edit mode only; any value allowed")
+            yield Label("")
+            yield Label("[bold] Configuration[/bold]")
+            yield Label(f"   Config file: ~/.backlog/config.json")
+            yield Label("")
+            yield Label("   [bold]status_colors[/bold] — Status column colors")
+            for key, val in ColorConfig.DEFAULT_STATUS_COLORS.items():
+                yield Label(f"     {key:15s} {val}")
+            yield Label("")
+            yield Label("   [bold]priority_colors[/bold] — Priority column colors")
+            for key, val in ColorConfig.DEFAULT_PRIORITY_COLORS.items():
+                yield Label(f"     {key:15s} {val}")
             yield Label("")
             yield Label("─" * 43)
             yield Label("Press [bold][Esc][/bold] or [bold][Q][/bold] to close")
