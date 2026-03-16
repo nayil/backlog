@@ -61,7 +61,7 @@ pip install -e .
 
 ```bash
 python -m backlog --version
-# backlog 1.0.0
+# backlog 1.1.0
 ```
 
 ---

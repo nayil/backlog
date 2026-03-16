@@ -70,7 +70,7 @@ class HelpScreen(ModalScreen[None]):
             yield Label("[bold] Other[/bold]")
             yield Label("   v              Show version history")
             yield Label("   ?              Show this help")
-            yield Label("   q              Quit")
+            yield Label("   q              Quit (with confirmation)")
             yield Label("")
             yield Label("[bold] Status Bar (bottom)[/bold]")
             yield Label("   Shows totals by status and current page / total pages")
@@ -91,7 +91,7 @@ class HelpScreen(ModalScreen[None]):
             yield Label("   Status         Edit mode only; any value allowed")
             yield Label("")
             yield Label("[bold] Configuration[/bold]")
-            yield Label(f"   Config file: ~/.backlog/config.json")
+            yield Label("   Config file: ~/.backlog/config.json")
             yield Label("")
             yield Label("   [bold]status_colors[/bold] — Status column colors")
             for key, val in ColorConfig.DEFAULT_STATUS_COLORS.items():
