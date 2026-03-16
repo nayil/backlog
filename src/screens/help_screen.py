@@ -9,6 +9,7 @@ from textual.widgets import Label
 from textual.app import ComposeResult
 
 from color_config import ColorConfig
+from config import BacklogConfig
 
 
 class HelpScreen(ModalScreen[None]):
@@ -92,6 +93,9 @@ class HelpScreen(ModalScreen[None]):
             yield Label("")
             yield Label("[bold] Configuration[/bold]")
             yield Label("   Config file: ~/.backlog/config.json")
+            yield Label("")
+            yield Label("   [bold]title_truncate_length[/bold] — Max chars for Title column in list")
+            yield Label(f"     Default: {BacklogConfig.DEFAULT_TITLE_TRUNCATE_LENGTH}; overflow shown as …")
             yield Label("")
             yield Label("   [bold]status_colors[/bold] — Status column colors")
             for key, val in ColorConfig.DEFAULT_STATUS_COLORS.items():

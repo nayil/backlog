@@ -12,6 +12,8 @@ CONFIG_FILE: Path = CONFIG_DIR / "config.json"
 class BacklogConfig:
     """Manages persistent configuration stored in ~/.backlog/config.json."""
 
+    DEFAULT_TITLE_TRUNCATE_LENGTH = 35
+
     def __init__(self, config_path: str | None = None) -> None:
         if config_path:
             self._config_file = Path(config_path)
@@ -19,6 +21,14 @@ class BacklogConfig:
         else:
             CONFIG_DIR.mkdir(parents=True, exist_ok=True)
             self._config_file = CONFIG_FILE
+
+    def get_title_truncate_length(self) -> int:
+        """Return title_truncate_length from config; invalid values fall back to 35."""
+        data = self._load()
+        val = data.get("title_truncate_length", self.DEFAULT_TITLE_TRUNCATE_LENGTH)
+        if not isinstance(val, int) or val <= 0:
+            return self.DEFAULT_TITLE_TRUNCATE_LENGTH
+        return val
 
     def _load(self) -> dict:
         try:

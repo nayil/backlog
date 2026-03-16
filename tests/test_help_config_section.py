@@ -31,6 +31,12 @@ class TestHelpScreenConfigSection(unittest.TestCase):
     def test_contains_priority_colors_key(self):
         self.assertIn("priority_colors", self.source)
 
+    def test_contains_title_truncate_length_key(self):
+        self.assertIn("title_truncate_length", self.source)
+
+    def test_references_backlog_config_default(self):
+        self.assertIn("BacklogConfig.DEFAULT_TITLE_TRUNCATE_LENGTH", self.source)
+
     def test_references_default_status_colors(self):
         self.assertIn("ColorConfig.DEFAULT_STATUS_COLORS", self.source)
 
