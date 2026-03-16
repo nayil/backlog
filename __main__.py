@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 
-_VERSION = "1.0.0"
+_VERSION = "1.1.0"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
