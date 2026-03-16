@@ -4,7 +4,7 @@
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-1.0.0-orange)
+![Version](https://img.shields.io/badge/version-1.1.0-orange)
 
 ---
 
@@ -20,6 +20,8 @@
 | 7 color themes | 7 种颜色主题 |
 | Column sorting (Status / Category / Priority / Age) | 列排序（状态 / 分类 / 优先级 / 天龄） |
 | Priority color indicators (HIGH=red / MEDIUM=amber / LOW=green) | 优先级颜色指示（高=红 / 中=琥珀 / 低=绿） |
+| Quit confirmation dialog | 退出二次确认 |
+| Standard pip install | 标准 pip 安装 |
 | One-command install via `install.sh` | 一键安装脚本 `install.sh` |
 
 ---
@@ -44,11 +46,22 @@ python -m backlog
 # Alternative: python src/app.py
 ```
 
+### Option 3 — pip install | 方式三：pip 安装
+
+```bash
+git clone <repo-url>
+cd backlog
+pip install .
+backlog
+# Development mode | 开发模式
+pip install -e .
+```
+
 ### Check version | 查看版本
 
 ```bash
 python -m backlog --version
-# backlog 1.0.0
+# backlog 1.1.0
 ```
 
 ---
@@ -95,7 +108,7 @@ python -m backlog --version
 | `v` | Version history | 查看历史版本 |
 | `Ctrl+T` | Color theme | 切换颜色主题 |
 | `?` | Help | 帮助 |
-| `q` | Quit | 退出 |
+| `q` | Quit (with confirmation) | 退出（需确认） |
 
 ### Add / Edit Dialog | 新增/编辑对话框
 
@@ -139,7 +152,51 @@ Data is stored in `~/.backlog/backlog.db` (SQLite). Created automatically on fir
 
 ---
 
+## Configuration | 配置
+
+Backlog Manager stores its configuration in `~/.backlog/config.json`. You can customize the display colors for Status and Priority columns.
+
+配置文件位于 `~/.backlog/config.json`，可自定义 Status 和 Priority 列的显示颜色。
+
+### Example `config.json` | 示例配置
+
+```json
+{
+  "status_colors": {
+    "todo": "#61AFEF",
+    "in_progress": "#E5C07B",
+    "done": "#98C379"
+  },
+  "priority_colors": {
+    "high": "#E06C75",
+    "medium": "#E5C07B",
+    "low": "#98C379"
+  }
+}
+```
+
+| Key | Field | Default | Description |
+|-----|-------|---------|-------------|
+| `status_colors` | `todo` | `#61AFEF` | Todo status color |
+| | `in_progress` | `#E5C07B` | In Progress status color |
+| | `done` | `#98C379` | Done status color |
+| `priority_colors` | `high` | `#E06C75` | High priority color |
+| | `medium` | `#E5C07B` | Medium priority color |
+| | `low` | `#98C379` | Low priority color |
+
+All color values must be valid 6-digit hex (`#RRGGBB`). Invalid or unknown keys are silently ignored, falling back to defaults.
+
+所有颜色值须为合法的 6 位 hex（`#RRGGBB`），不合法或未知 key 将静默忽略并使用默认值。
+
+---
+
 ## Version | 版本信息
+
+**v1.1.0** — 2026-03-16
+
+New in v1.1.0: Quit confirmation dialog, config.json documentation in Help screen, standard `pip install .` support via `pyproject.toml`.
+
+v1.1.0 新增：退出二次确认对话框、Help 屏幕配置说明、pyproject.toml 标准 pip 安装支持。
 
 **v1.0.0** — 2026-03-14
 
@@ -147,4 +204,4 @@ New in v1.0.0: `requirements.txt`, `python -m backlog` entry point, `--version` 
 
 v1.0.0 新增：依赖清单 `requirements.txt`、`python -m backlog` 入口、`--version` 标志、`install.sh` 一键安装脚本。
 
-See [full user manual / 完整用户手册](.release/backlog-v1.0.0-用户手册.md) for details.
+See [full user manual / 完整用户手册](.release/backlog-v1.1.0-用户手册.md) for details.

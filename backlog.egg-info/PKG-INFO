@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: backlog
+Version: 1.1.0
+Summary: Terminal-based task manager built with Textual TUI
+License: MIT
+Requires-Python: >=3.9
+License-File: LICENSE
+Requires-Dist: textual>=0.50.0
+Requires-Dist: rich>=13.0.0
+Dynamic: license-file

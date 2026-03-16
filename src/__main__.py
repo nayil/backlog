@@ -1,10 +1,9 @@
 """Entry point for `python -m backlog`."""
 import sys
-from pathlib import Path
 
-_VERSION = "1.1.0"
+from . import __version__
 
-sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+_VERSION = __version__
 
 
 def main() -> None:
@@ -12,7 +11,7 @@ def main() -> None:
         print(f"backlog {_VERSION}")
         sys.exit(0)
 
-    from app import BacklogApp
+    from .app import BacklogApp
     BacklogApp().run()
 
 

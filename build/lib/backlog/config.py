@@ -1,0 +1,44 @@
+"""Persistent configuration for Backlog Manager."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+CONFIG_DIR: Path = Path.home() / ".backlog"
+CONFIG_FILE: Path = CONFIG_DIR / "config.json"
+
+
+class BacklogConfig:
+    """Manages persistent configuration stored in ~/.backlog/config.json."""
+
+    def __init__(self, config_path: str | None = None) -> None:
+        if config_path:
+            self._config_file = Path(config_path)
+            self._config_file.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+            self._config_file = CONFIG_FILE
+
+    def _load(self) -> dict:
+        try:
+            with self._config_file.open("r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def _save(self, data: dict) -> None:
+        try:
+            with self._config_file.open("w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as exc:
+            import sys
+            print(f"[backlog] warning: failed to save config: {exc}", file=sys.stderr)
+
+
+def load_config() -> dict:
+    return BacklogConfig()._load()
+
+
+def save_config(config: dict) -> None:
+    BacklogConfig()._save(config)
