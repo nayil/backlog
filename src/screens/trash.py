@@ -49,9 +49,14 @@ class TrashScreen(ModalScreen[None]):
         Binding("escape", "dismiss_screen", "Close"),
     ]
 
-    def __init__(self, repo: BacklogRepository) -> None:
+    def __init__(
+        self,
+        repo: BacklogRepository,
+        config: BacklogConfig | None = None,
+    ) -> None:
         super().__init__()
         self.repo = repo
+        self.config = config if config is not None else BacklogConfig()
         self.page: int = 0
         self.page_size: int = 20
         self.search_keyword: Optional[str] = None
@@ -82,7 +87,7 @@ class TrashScreen(ModalScreen[None]):
             limit=self.page_size,
             offset=self.page * self.page_size,
         )
-        max_len = BacklogConfig().get_title_truncate_length()
+        max_len = self.config.get_title_truncate_length()
         for item in items:
             deleted_str = item.deleted_at.strftime("%Y-%m-%d %H:%M:%S") if item.deleted_at else "-"
             expires_str = item.expires_at.strftime("%Y-%m-%d") if item.expires_at else "-"

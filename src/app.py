@@ -377,7 +377,7 @@ class BacklogApp(App):
         def on_closed(result: None) -> None:
             self._refresh_table()
 
-        self.push_screen(TrashScreen(self.repo), callback=on_closed)
+        self.push_screen(TrashScreen(self.repo, self.config), callback=on_closed)
 
     def action_toggle_status(self) -> None:
         item_id = self._selected_item_id()
