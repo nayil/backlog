@@ -35,6 +35,7 @@ from screens import (
     ItemFormScreen,
     SearchScreen,
     ConfirmDeleteScreen,
+    ConfirmQuitScreen,
     TrashScreen,
     HelpScreen,
     VersionScreen,
@@ -115,7 +116,7 @@ class BacklogApp(App):
         Binding("n", "next_page", "Next Page"),
         Binding("p", "prev_page", "Prev Page"),
         Binding("question_mark", "help", "Help"),
-        Binding("q", "quit", "Quit"),
+        Binding("q", "request_quit", "Quit"),
     ]
 
     def __init__(self, db_path: str = DB_PATH) -> None:
@@ -434,6 +435,13 @@ class BacklogApp(App):
 
     def action_show_versions(self) -> None:
         self.push_screen(VersionScreen())
+
+    def action_request_quit(self) -> None:
+        def on_confirmed(confirmed: bool) -> None:
+            if confirmed:
+                self.exit()
+
+        self.push_screen(ConfirmQuitScreen(), callback=on_confirmed)
 
     def action_help(self) -> None:
         self.push_screen(HelpScreen())
