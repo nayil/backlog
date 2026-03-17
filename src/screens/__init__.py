@@ -1,6 +1,7 @@
 from screens.item_form import ItemFormScreen
 from screens.search import SearchScreen
 from screens.confirm_delete import ConfirmDeleteScreen
+from screens.confirm_discard import ConfirmDiscardScreen
 from screens.confirm_quit import ConfirmQuitScreen
 from screens.trash import TrashScreen
 from screens.help_screen import HelpScreen
