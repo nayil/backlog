@@ -214,10 +214,10 @@ class TestStaticCodeChecks(unittest.TestCase):
         self.assertGreater(idx_push, 0, "push_screen(ItemFormScreen(item)) not found")
         self.assertLess(idx_assign, idx_push, "original_status must come before push_screen")
 
-    def test_age_column_in_add_columns(self):
-        """'Age' column must be in add_columns call."""
-        self.assertIn('"Age"', self.source)
-        self.assertIn('add_columns("ID", "Title", "Status", "Category", "Priority", "Age")', self.source)
+    def test_main_columns_order_id_category_title_status_priority_age(self):
+        """Main table columns must be ID, Category, Title, Status, Priority, Age."""
+        expected = 'add_columns("ID", "Category", "Title", "Status", "Priority", "Age")'
+        self.assertIn(expected, self.source)
 
     def test_age_str_logic_present(self):
         """age_str calculation logic must be present."""
