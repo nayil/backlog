@@ -138,7 +138,7 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
             if confirmed:
                 self.dismiss(None)
 
-        self.push_screen(ConfirmDiscardScreen(), callback=on_discard_result)
+        self.app.push_screen(ConfirmDiscardScreen(), callback=on_discard_result)
 
     def action_submit(self) -> None:
         title = self.query_one("#inp-title", Input).value.strip()
