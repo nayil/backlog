@@ -158,6 +158,18 @@ class TestHasChangesEditMode(unittest.TestCase):
                 return app.form_screen._has_changes()
         self.assertTrue(asyncio.run(run()))
 
+    def test_edit_mode_whitespace_only_change_false(self):
+        """Whitespace-only diff (e.g. '  ' -> '') is considered no change (P2-1 design)."""
+        item = BacklogItem(title="  ", description="", category="", priority=Priority.MEDIUM)
+
+        async def run():
+            app = ItemFormTestApp(item=item, categories=[])
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                app.form_screen.query_one("#inp-title").value = ""
+                return app.form_screen._has_changes()
+        self.assertFalse(asyncio.run(run()))
+
 
 # ---------------------------------------------------------------------------
 # action_cancel - ConfirmDiscardScreen integration
@@ -180,6 +192,19 @@ class TestActionCancelImportsConfirmDiscard(unittest.TestCase):
         self.assertIn("_has_changes()", source)
         self.assertIn("push_screen(ConfirmDiscardScreen()", source)
         self.assertIn("on_discard_result", source)
+
+    def test_action_cancel_no_changes_direct_dismiss(self):
+        """With no changes, Esc dismisses form directly without ConfirmDiscardScreen."""
+        async def run():
+            app = ItemFormTestApp(item=None, categories=[])
+            async with app.run_test() as pilot:
+                await pilot.pause()
+                await pilot.press("escape")
+                await pilot.pause(0.2)
+                form_dismissed = app.form_screen not in app.screen_stack
+                no_confirm_shown = not any(isinstance(s, ConfirmDiscardScreen) for s in app.screen_stack)
+                return form_dismissed and no_confirm_shown
+        self.assertTrue(asyncio.run(run()))
 
     def test_action_cancel_with_changes_esc_shows_confirm_discard(self):
         """With unsaved changes, Esc shows ConfirmDiscardScreen."""
