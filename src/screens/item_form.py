@@ -12,6 +12,7 @@ from textual.suggester import SuggestFromList
 from textual.widgets import Input, Label, Select, Static, TextArea
 
 from models import BacklogItem, Priority, Status
+from screens.confirm_discard import ConfirmDiscardScreen
 
 
 class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
@@ -103,8 +104,41 @@ class ItemFormScreen(ModalScreen[Optional[BacklogItem]]):
             with Horizontal(id="form-buttons"):
                 yield Static("[bold][Ctrl+S][/bold] Save  |  [bold][Esc][/bold] Cancel")
 
+    def _has_changes(self) -> bool:
+        """Return True if form has unsaved changes compared to initial state."""
+        title = self.query_one("#inp-title", Input).value.strip()
+        desc = self.query_one("#inp-desc", TextArea).text.strip()
+        category = self.query_one("#inp-category", Input).value.strip()
+        priority = Priority(self.query_one("#sel-priority", Select).value)
+
+        if self.item is None:
+            # New mode: any non-empty or priority != MEDIUM
+            return bool(title or desc or category or priority != Priority.MEDIUM)
+
+        # Edit mode: any field different from initial item
+        if title != (self.item.title or "").strip():
+            return True
+        if desc != (self.item.description or "").strip():
+            return True
+        if category != (self.item.category or "").strip():
+            return True
+        if priority != self.item.priority:
+            return True
+        status_sel = self.query_one("#sel-status", Select)
+        if Status(status_sel.value) != self.item.status:
+            return True
+        return False
+
     def action_cancel(self) -> None:
-        self.dismiss(None)
+        if not self._has_changes():
+            self.dismiss(None)
+            return
+
+        def on_discard_result(confirmed: bool) -> None:
+            if confirmed:
+                self.dismiss(None)
+
+        self.app.push_screen(ConfirmDiscardScreen(), callback=on_discard_result)
 
     def action_submit(self) -> None:
         title = self.query_one("#inp-title", Input).value.strip()
