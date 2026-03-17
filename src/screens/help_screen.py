@@ -20,7 +20,7 @@ class HelpScreen(ModalScreen[None]):
         align: center middle;
     }
     #help-container {
-        width: 60;
+        width: 80;
         height: auto;
         max-height: 90%;
         border: thick $accent;
@@ -78,9 +78,9 @@ class HelpScreen(ModalScreen[None]):
             yield Label("")
             yield Label("[bold] Main List Columns[/bold]")
             yield Label("   ID             Unique item identifier")
+            yield Label("   Category       Item category (from title prefix)")
             yield Label("   Title          Item title (category:description)")
             yield Label("   Status         Todo / In Progress / Done")
-            yield Label("   Category       Item category (from title prefix)")
             yield Label("   Priority       High / Medium / Low")
             yield Label("   Age            Days since creation")
             yield Label("")

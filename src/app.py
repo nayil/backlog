@@ -161,12 +161,12 @@ class BacklogApp(App):
     def on_mount(self) -> None:
         table = self.query_one("#table", DataTable)
         table.cursor_type = "row"
-        col_keys = table.add_columns("ID", "Title", "Status", "Category", "Priority", "Age")
+        col_keys = table.add_columns("ID", "Category", "Title", "Status", "Priority", "Age")
         self._col_keys = {
             "ID": col_keys[0],
-            "Title": col_keys[1],
-            "Status": col_keys[2],
-            "Category": col_keys[3],
+            "Category": col_keys[1],
+            "Title": col_keys[2],
+            "Status": col_keys[3],
             "Priority": col_keys[4],
             "Age": col_keys[5],
         }
@@ -193,9 +193,9 @@ class BacklogApp(App):
             age_str = f"{(now - item.created_at).days}d" if item.created_at else "-"
             table.add_row(
                 str(item.id),
+                item.category or "-",
                 truncate_title(item.title, self.config.get_title_truncate_length()),
                 colorize_status(item.status, self.color_config),
-                item.category or "-",
                 colorize_priority(item.priority, self.color_config),
                 age_str,
                 key=str(item.id),

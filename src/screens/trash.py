@@ -74,7 +74,7 @@ class TrashScreen(ModalScreen[None]):
     def on_mount(self) -> None:
         table = self.query_one("#trash-table", DataTable)
         table.cursor_type = "row"
-        table.add_columns("ID", "Title", "Category", "Deleted At", "Expires At")
+        table.add_columns("ID", "Category", "Title", "Deleted At", "Expires At")
         self._refresh_trash()
 
     def _refresh_trash(self) -> None:
@@ -93,8 +93,8 @@ class TrashScreen(ModalScreen[None]):
             expires_str = item.expires_at.strftime("%Y-%m-%d") if item.expires_at else "-"
             table.add_row(
                 str(item.id),
-                truncate_title(item.title, max_len),
                 item.category or "-",
+                truncate_title(item.title, max_len),
                 deleted_str,
                 expires_str,
                 key=str(item.id),
