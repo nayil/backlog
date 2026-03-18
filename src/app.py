@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -12,24 +11,12 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, VerticalScroll
-from textual.widgets import (
-    DataTable,
-    Footer,
-    Header,
-    Select,
-    Static,
-)
+from textual.widgets import Footer, Header, Select, Static
 
 # Ensure src/ is on the path so models/repository can be imported directly.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from colors import (
-    STATUS_DISPLAY,
-    PRIORITY_DISPLAY,
-    NEXT_STATUS,
-    colorize_status,
-    colorize_priority,
-)
+from colors import NEXT_STATUS
 from color_config import ColorConfig
 from screens import (
     ItemFormScreen,
@@ -43,20 +30,11 @@ from screens import (
     ImportScreen,
 )
 from config import BacklogConfig
-from display import truncate_title
-from models import BacklogItem, Priority, Status
+from models import BacklogItem, Status
 from repository import BacklogRepository
+from widgets import FilterBar, MainTable, StatsBar, calc_total_pages, clamp_page
 
 DB_PATH = os.path.join(Path.home(), ".backlog", "backlog.db")
-
-# ── sort column mapping ───────────────────────────────────────────────
-
-_COL_TO_SORT = {
-    "Status": "status",
-    "Category": "category",
-    "Priority": "priority",
-    "Age": "age",
-}
 
 # ── Main App ────────────────────────────────────────────────────────
 
@@ -134,43 +112,44 @@ class BacklogApp(App):
         self._total_count: int = 0
         self._sort_by: Optional[str] = None
         self._sort_asc: bool = True
-        self._col_keys: dict = {}
 
     def compose(self) -> ComposeResult:
         yield Header()
-        with Horizontal(id="filter-bar"):
-            yield Select(
-                [("All Status", "all")]
-                + [(s.value.replace("_", " ").capitalize(), s.value) for s in Status],
-                value="all",
-                id="sel-filter-status",
-            )
-            yield Select(
-                [("All Categories", "all")],
-                value="all",
-                id="sel-filter-category",
-            )
+        self._filter_bar = FilterBar(
+            categories=[],
+            filter_status=self.filter_status,
+            filter_category=self.filter_category,
+            id="filter-bar",
+        )
+        yield self._filter_bar
+        self._preview_title = Static("", id="preview-title")
+        self._preview_desc = Static("", id="preview-desc")
+        self._main_table = MainTable(
+            self.repo,
+            self.config,
+            self.color_config,
+            self._preview_title,
+            self._preview_desc,
+            on_sort_changed=self._on_sort_changed,
+            id="table",
+        )
         with Horizontal(id="main-content"):
-            yield DataTable(id="table")
+            yield self._main_table
             with VerticalScroll(id="preview-panel"):
-                yield Static("", id="preview-title")
-                yield Static("", id="preview-desc")
+                yield self._preview_title
+                yield self._preview_desc
         yield Footer()
-        yield Static("", id="stats-bar")
+        self._stats_bar = StatsBar(id="stats-bar")
+        yield self._stats_bar
 
     def on_mount(self) -> None:
-        table = self.query_one("#table", DataTable)
-        table.cursor_type = "row"
-        col_keys = table.add_columns("ID", "Category", "Title", "Status", "Priority", "Age")
-        self._col_keys = {
-            "ID": col_keys[0],
-            "Category": col_keys[1],
-            "Title": col_keys[2],
-            "Status": col_keys[3],
-            "Priority": col_keys[4],
-            "Age": col_keys[5],
-        }
         self._refresh_categories()
+        self._refresh_table()
+
+    def _on_sort_changed(self, sort_by: Optional[str], sort_asc: bool) -> None:
+        self._sort_by = sort_by
+        self._sort_asc = sort_asc
+        self.page = 0
         self._refresh_table()
 
     # ── data refresh ─────────────────────────────────────────────
@@ -181,113 +160,29 @@ class BacklogApp(App):
             category=self.filter_category,
             keyword=self.filter_keyword,
         )
-        total_pages = max(1, (self._total_count + self.page_size - 1) // self.page_size)
-        if self.page >= total_pages:
-            self.page = max(0, total_pages - 1)
-        table = self.query_one("#table", DataTable)
-        table.clear()
-        table.move_cursor(row=0, animate=False)
-        items = self.repo.list(
-            status=self.filter_status,
-            category=self.filter_category,
-            keyword=self.filter_keyword,
-            limit=self.page_size,
-            offset=self.page * self.page_size,
+        total_pages = calc_total_pages(self._total_count, self.page_size)
+        self.page = clamp_page(self.page, total_pages)
+        self._main_table.refresh(
+            filter_status=self.filter_status,
+            filter_category=self.filter_category,
+            filter_keyword=self.filter_keyword,
+            page=self.page,
+            page_size=self.page_size,
             sort_by=self._sort_by,
             sort_asc=self._sort_asc,
         )
-        now = datetime.now()
-        for item in items:
-            age_str = f"{(now - item.created_at).days}d" if item.created_at else "-"
-            table.add_row(
-                str(item.id),
-                item.category or "-",
-                truncate_title(item.title, self.config.get_title_truncate_length()),
-                colorize_status(item.status, self.color_config),
-                colorize_priority(item.priority, self.color_config),
-                age_str,
-                key=str(item.id),
-            )
-        table.refresh()
-        if not items:
-            self._clear_preview()
-        self._refresh_stats()
-
-    def _refresh_stats(self) -> None:
         stats = self.repo.get_stats(category=self.filter_category)
         by_s = stats["by_status"]
-        total_pages = max(1, (self._total_count + self.page_size - 1) // self.page_size)
         current_page = self.page + 1
-        bar = self.query_one("#stats-bar", Static)
-        bar.update(
-            f" Total: {self._total_count}  |  "
-            f"Todo: {by_s.get('todo', 0)}  |  "
-            f"In Progress: {by_s.get('in_progress', 0)}  |  "
-            f"Done: {by_s.get('done', 0)}  |  "
-            f"Page {current_page}/{total_pages}  [N]ext  [P]rev"
+        self._stats_bar.update_stats(
+            self._total_count, by_s, current_page, total_pages
         )
 
     def _refresh_categories(self) -> None:
-        sel = self.query_one("#sel-filter-category", Select)
-        categories = self.repo.get_categories()
-        options = [("All Categories", "all")] + [(c, c) for c in categories]
-        sel.set_options(options)
+        self._filter_bar.set_categories(self.repo.get_categories())
 
     def _selected_item_id(self) -> Optional[int]:
-        table = self.query_one("#table", DataTable)
-        if table.row_count == 0:
-            return None
-        try:
-            row_key, _ = table.coordinate_to_cell_key(table.cursor_coordinate)
-            return int(row_key.value)
-        except Exception:
-            return None
-
-    def _clear_preview(self) -> None:
-        self.query_one("#preview-title", Static).update("")
-        self.query_one("#preview-desc", Static).update("")
-
-    def on_data_table_row_highlighted(self, event: DataTable.RowHighlighted) -> None:
-        if event.row_key is None:
-            return
-        try:
-            item_id = int(str(event.row_key.value))
-        except (ValueError, TypeError):
-            return
-        item = self.repo.get(item_id)
-        if item:
-            self.query_one("#preview-title", Static).update(item.title or "")
-            self.query_one("#preview-desc", Static).update(item.description or "(No description)")
-        else:
-            self._clear_preview()
-
-    def on_data_table_header_selected(self, event: DataTable.HeaderSelected) -> None:
-        col_label = str(event.label).rstrip(" \u2191\u2193").strip()
-        sort_field = _COL_TO_SORT.get(col_label)
-        if sort_field is None:
-            return
-        if self._sort_by == sort_field:
-            self._sort_asc = not self._sort_asc
-        else:
-            self._sort_by = sort_field
-            self._sort_asc = True
-        self.page = 0
-        self._update_column_labels()
-        self._refresh_table()
-
-    def _update_column_labels(self) -> None:
-        table = self.query_one("#table", DataTable)
-        base_labels = {
-            "ID": "ID", "Title": "Title", "Status": "Status",
-            "Category": "Category", "Priority": "Priority", "Age": "Age"
-        }
-        sort_col = {v: k for k, v in _COL_TO_SORT.items()}.get(self._sort_by)
-        for col_name, col_key in self._col_keys.items():
-            label = base_labels[col_name]
-            if col_name == sort_col:
-                label += " \u2191" if self._sort_asc else " \u2193"
-            table.columns[col_key].label = label
-        table.refresh()
+        return self._main_table.selected_item_id
 
     # ── filter events ────────────────────────────────────────────
 
@@ -412,7 +307,7 @@ class BacklogApp(App):
         self.push_screen(SearchScreen(), callback=on_result)
 
     def action_next_page(self) -> None:
-        total_pages = max(1, (self._total_count + self.page_size - 1) // self.page_size)
+        total_pages = calc_total_pages(self._total_count, self.page_size)
         if self.page < total_pages - 1:
             self.page += 1
             self._refresh_table()

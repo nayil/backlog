@@ -63,12 +63,12 @@ class MainTable(DataTable):
 
     def refresh(self, *args, **kwargs) -> None:
         """Load and display table data. App passes already clamped page; no count here.
-        When called with no args (from DataTable.clear) or with widget kwargs (repaint, etc),
-        delegates to parent.
+        When called with region (DataTable repaint) or without our load params, delegates to parent.
         """
         load_keys = {"filter_status", "filter_category", "filter_keyword", "page", "page_size", "sort_by", "sort_asc"}
-        if not (args or load_keys & set(kwargs)):
-            super().refresh()
+        has_load_params = bool(load_keys & set(kwargs))
+        if not has_load_params:
+            super().refresh(*args, **kwargs)
             return
         filter_status = kwargs.get("filter_status")
         filter_category = kwargs.get("filter_category")
