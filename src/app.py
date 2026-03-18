@@ -10,7 +10,7 @@ from typing import Optional
 from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.widgets import Footer, Header, Select, Static
 
 # Ensure src/ is on the path so models/repository can be imported directly.
@@ -53,9 +53,12 @@ class BacklogApp(App):
         width: 24;
         margin-right: 1;
     }
+    #footer-row {
+        height: 2;
+        dock: bottom;
+    }
     #stats-bar {
         height: 1;
-        dock: bottom;
         padding: 0 1;
         background: $accent;
         color: $text;
@@ -138,9 +141,10 @@ class BacklogApp(App):
             with VerticalScroll(id="preview-panel"):
                 yield self._preview_title
                 yield self._preview_desc
-        yield Footer()
-        self._stats_bar = StatsBar(id="stats-bar")
-        yield self._stats_bar
+        with Vertical(id="footer-row"):
+            self._stats_bar = StatsBar(id="stats-bar")
+            yield self._stats_bar
+            yield Footer()
 
     def on_mount(self) -> None:
         self._refresh_categories()
