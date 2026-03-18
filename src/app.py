@@ -130,7 +130,7 @@ class BacklogApp(App):
         self.filter_category: Optional[str] = None
         self.filter_keyword: Optional[str] = None
         self.page: int = 0
-        self.page_size: int = 20
+        self.page_size: int = self.config.get_page_size()
         self._total_count: int = 0
         self._sort_by: Optional[str] = None
         self._sort_asc: bool = True
@@ -155,8 +155,8 @@ class BacklogApp(App):
             with VerticalScroll(id="preview-panel"):
                 yield Static("", id="preview-title")
                 yield Static("", id="preview-desc")
-        yield Static("", id="stats-bar")
         yield Footer()
+        yield Static("", id="stats-bar")
 
     def on_mount(self) -> None:
         table = self.query_one("#table", DataTable)
@@ -176,6 +176,14 @@ class BacklogApp(App):
     # ── data refresh ─────────────────────────────────────────────
 
     def _refresh_table(self) -> None:
+        self._total_count = self.repo.count(
+            status=self.filter_status,
+            category=self.filter_category,
+            keyword=self.filter_keyword,
+        )
+        total_pages = max(1, (self._total_count + self.page_size - 1) // self.page_size)
+        if self.page >= total_pages:
+            self.page = max(0, total_pages - 1)
         table = self.query_one("#table", DataTable)
         table.clear()
         table.move_cursor(row=0, animate=False)
@@ -208,11 +216,6 @@ class BacklogApp(App):
     def _refresh_stats(self) -> None:
         stats = self.repo.get_stats(category=self.filter_category)
         by_s = stats["by_status"]
-        self._total_count = self.repo.count(
-            status=self.filter_status,
-            category=self.filter_category,
-            keyword=self.filter_keyword,
-        )
         total_pages = max(1, (self._total_count + self.page_size - 1) // self.page_size)
         current_page = self.page + 1
         bar = self.query_one("#stats-bar", Static)
