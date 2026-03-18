@@ -20,6 +20,7 @@ src/migration.py
 src/models.py
 src/repository.py
 src/task_manager.py
+tests/test_app_page_size_v170.py
 tests/test_app_title_truncate.py
 tests/test_app_v080.py
 tests/test_color_config.py
@@ -28,10 +29,13 @@ tests/test_confirm_quit.py
 tests/test_display.py
 tests/test_docs.py
 tests/test_help_config_section.py
+tests/test_help_screen_v130.py
+tests/test_item_form_has_changes.py
 tests/test_migration.py
 tests/test_models.py
 tests/test_pyproject.py
 tests/test_repository.py
 tests/test_task_manager.py
+tests/test_trash_columns.py
 tests/test_v090.py
 tests/test_v110_tester.py

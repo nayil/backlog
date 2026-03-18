@@ -13,6 +13,7 @@ class BacklogConfig:
     """Manages persistent configuration stored in ~/.backlog/config.json."""
 
     DEFAULT_TITLE_TRUNCATE_LENGTH = 35
+    DEFAULT_PAGE_SIZE = 20
 
     def __init__(self, config_path: str | None = None) -> None:
         if config_path:
@@ -28,6 +29,14 @@ class BacklogConfig:
         val = data.get("title_truncate_length", self.DEFAULT_TITLE_TRUNCATE_LENGTH)
         if not isinstance(val, int) or val <= 0:
             return self.DEFAULT_TITLE_TRUNCATE_LENGTH
+        return val
+
+    def get_page_size(self) -> int:
+        """Return page_size from config; invalid values (<=0 or non-integer) fall back to 20."""
+        data = self._load()
+        val = data.get("page_size", self.DEFAULT_PAGE_SIZE)
+        if not isinstance(val, int) or val <= 0:
+            return self.DEFAULT_PAGE_SIZE
         return val
 
     def _load(self) -> dict:
